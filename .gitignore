@@ -1,0 +1,43 @@
+# ── Secrets & credentials ────────────────────────────────────────
+# Any .env variant, anywhere in the repo
+.env
+.env.*
+!.env.example
+
+# Google service-account key files, however they get named
+*service-account*.json
+*serviceAccount*.json
+*credentials*.json
+*-key.json
+*gcp*.json
+*.pem
+*.p12
+*.key
+
+# Catch-all folder for anything sensitive added later — put new
+# credential/key/secret files in here and they're ignored automatically,
+# no need to touch this .gitignore again.
+secrets/*
+!secrets/.gitkeep
+.secrets/*
+!.secrets/.gitkeep
+
+# Vercel CLI local project link/config (contains project + org IDs)
+.vercel
+
+# ── Node ──────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+
+# ── OS / editor cruft ────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Logs / local scratch ────────────────────────────────────────
+*.log
+.tmp/

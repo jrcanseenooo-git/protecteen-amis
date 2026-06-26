@@ -1,0 +1,9 @@
+{
+  "name": "amis-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AMIS (Adolescent Mother Information System) — Vercel deployment, Google Sheet as the database.",
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}
