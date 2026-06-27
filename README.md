@@ -17,9 +17,10 @@ Recommended production setup for this repo:
 
 ## Recommended hybrid setup
 
-1. Add `appscript-rpc-adapter.gs` to the existing Apps Script backend
-   project.
-2. Deploy the Apps Script project as a Web App.
+1. Confirm the existing Apps Script backend deployment exposes the RPC
+   `doPost` endpoint used by `/api/rpc`.
+2. Manage the existing Apps Script Web App deployment; do not create a
+   new deployment URL for routine updates.
 3. Copy the Web App URL, which usually looks like:
    `https://script.google.com/macros/s/.../exec`
 4. Set `APPS_SCRIPT_WEB_APP_URL` in `.env` for local dev and in Vercel
@@ -68,9 +69,8 @@ Apps Script provides that don't exist anywhere else:
    this, **`app.js` itself didn't need a single line changed** — every
    existing call site keeps working exactly as written.
 
-Everything else is new *additions* (the `/api` and `/lib` and
-`/handlers` folders) — nothing pre-existing was rewritten beyond the
-three points above.
+Everything else is backend organization under `/api` and `/src`; the
+current user-facing view remains in `public/`.
 
 ## Project structure
 
