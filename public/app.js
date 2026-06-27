@@ -218,6 +218,7 @@
         amvatCompareBaseQuarter: "Baseline",
         amvatCompareTargetQuarter: "Q1-Y1",
         amvatCompareBeneficiaryKey: null,
+        amvatCompareExpanded: false,
         sessionFilterSession: "",
         sessionFilterAttStatus: null,
         sessionTestPolling: null,
