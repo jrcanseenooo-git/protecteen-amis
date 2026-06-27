@@ -51,6 +51,32 @@ const READ_ONLY_FUNCTIONS = new Set([
   "searchRecordByName",
 ]);
 
+const APPS_SCRIPT_FALLBACK_FUNCTIONS = new Set([
+  "bulkUpdateSessions",
+  "deleteGrantee",
+  "getAllAMVATRecords",
+  "getAllSessionAttendance",
+  "getDashboardStatsByBarangay",
+  "getExistingAMVAT",
+  "getGranteeRecords",
+  "getHealthcareRecords",
+  "getPayoutRecords",
+  "getPTResults",
+  "getSessionTestRecords",
+  "saveAllEnrolledData",
+  "saveBulkSessionTestScores",
+  "saveGrantee",
+  "savePayout",
+  "savePTResult",
+  "savePTResultBulk",
+  "saveSessionAttendance",
+  "saveSessionTestScore",
+  "searchAMVATProfiles",
+  "submitAMVATToQuarter",
+  "syncAttendanceFromTestScores",
+  "updateAMVATProfile",
+]);
+
 const registry = {
   login: require("../handlers/login"),
   signup: require("../handlers/signup"),
@@ -86,6 +112,11 @@ const registry = {
   // getPayoutRecords, savePayout, getGranteeRecords, saveGrantee,
   // deleteGrantee, getPTResults, savePTResult, savePTResultBulk
 };
+
+const EXPOSED_FUNCTIONS = new Set([
+  ...Object.keys(registry),
+  ...APPS_SCRIPT_FALLBACK_FUNCTIONS,
+]);
 
 async function readJsonBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
@@ -143,6 +174,13 @@ function setCachedResponse(payload, text) {
   });
 }
 
+function clearReadCacheForWrite(payload) {
+  const fn = payload && payload.fn;
+  if (!READ_ONLY_FUNCTIONS.has(fn)) {
+    readCache.clear();
+  }
+}
+
 async function proxyToAppsScript(payload, res) {
   try {
     const cached = getCachedResponse(payload);
@@ -181,6 +219,7 @@ async function proxyToAppsScript(payload, res) {
     res.setHeader("X-AMIS-Cache", "MISS");
     if (upstream.ok) {
       setCachedResponse(payload, text);
+      clearReadCacheForWrite(payload);
     }
     res.end(text);
   } catch (error) {
@@ -211,12 +250,23 @@ module.exports = async (req, res) => {
     return;
   }
 
+  const { fn, args } = payload || {};
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(fn || "") || !EXPOSED_FUNCTIONS.has(fn)) {
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        success: false,
+        message: "Requested backend function is not available.",
+      }),
+    );
+    return;
+  }
+
   if (USE_APPS_SCRIPT_BACKEND) {
     await proxyToAppsScript(payload, res);
     return;
   }
 
-  const { fn, args } = payload || {};
   const handler = registry[fn];
 
   if (!handler) {
@@ -240,6 +290,7 @@ module.exports = async (req, res) => {
 
   try {
     const result = await handler(...(Array.isArray(args) ? args : []));
+    clearReadCacheForWrite(payload);
     res.setHeader("Content-Type", "application/json");
     // Handlers already return JSON.stringify(...) strings, matching
     // exactly what google.script.run used to hand back — send as-is.
