@@ -89,12 +89,17 @@ async function proxyToAppsScript(payload, res) {
     }
     res.end(text);
   } catch (error) {
+    console.error("Apps Script backend request failed", {
+      fn: payload && payload.fn,
+      message: error && error.message ? error.message : String(error),
+      stack: error && error.stack ? error.stack : undefined,
+    });
     res.statusCode = 502;
     res.setHeader("Content-Type", "application/json");
     res.end(
       JSON.stringify({
         success: false,
-        message: "Apps Script backend request failed: " + error.toString(),
+        message: "Backend request failed. Please try again.",
       }),
     );
   }

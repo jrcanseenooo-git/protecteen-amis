@@ -53,9 +53,19 @@ async function handleRpcRequest(payload, res) {
     // exactly what google.script.run used to hand back - send as-is.
     res.end(typeof result === "string" ? result : JSON.stringify(result));
   } catch (error) {
+    console.error("RPC handler failed", {
+      fn,
+      message: error && error.message ? error.message : String(error),
+      stack: error && error.stack ? error.stack : undefined,
+    });
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ success: false, message: error.toString() }));
+    res.end(
+      JSON.stringify({
+        success: false,
+        message: "Something went wrong. Please try again.",
+      }),
+    );
   }
 }
 

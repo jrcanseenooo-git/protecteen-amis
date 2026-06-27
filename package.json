@@ -9,12 +9,9 @@
     "deploy:check": "npm run audit:high && npm run build",
     "dev": "node scripts/dev-server.js",
     "prevercel:dev": "npm run audit:high",
-    "vercel:dev": "vercel dev"
+    "vercel:dev": "npx vercel dev"
   },
   "dependencies": {
-    "googleapis": "^144.0.0"
-  },
-  "devDependencies": {
-    "vercel": "^54.0.0"
+    "googleapis": "^173.0.0"
   }
 }
