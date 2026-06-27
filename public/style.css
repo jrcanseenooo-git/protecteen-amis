@@ -1592,11 +1592,16 @@
 
   /* ── TABLE WRAPPER ─── */
   .amvat-compare-panel {
-    background: #fff;
-    border: 1.5px solid #ede8ff;
+    background: linear-gradient(135deg, #faf8ff 0%, #f3eeff 100%);
+    border: 1.5px solid #e2d6ff;
+    border-left: 4px solid #7257b3;
     border-radius: 14px;
-    padding: 16px;
-    box-shadow: 0 2px 14px rgba(109, 40, 217, 0.05);
+    padding: 14px 16px;
+    box-shadow: 0 2px 14px rgba(109, 40, 217, 0.06);
+  }
+
+  .amvat-compare-panel--open {
+    padding-bottom: 16px;
   }
 
   .amvat-compare-toolbar {
@@ -1605,7 +1610,22 @@
     justify-content: space-between;
     gap: 14px;
     flex-wrap: wrap;
-    margin-bottom: 14px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 10px;
+    margin: -4px -6px;
+    padding: 4px 6px;
+    transition: background 0.15s ease;
+  }
+
+  .amvat-compare-toolbar:hover {
+    background: rgba(114, 87, 179, 0.06);
+  }
+
+  .amvat-compare-body {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1.5px dashed #e2d6ff;
   }
 
   .amvat-compare-title {
@@ -1778,6 +1798,19 @@
     .amvat-compare-domains {
       grid-template-columns: repeat(2, minmax(120px, 1fr));
     }
+  }
+
+  .amvat-records-divider {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #8b7bb8;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-left: 2px;
   }
 
   .amvat-tbl-wrap {
