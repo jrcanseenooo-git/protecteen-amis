@@ -2,6 +2,7 @@ const sheets = require("../../models/sheetsClient");
 const { SETTINGS } = require("../../services/settings");
 const { isRowEmpty, getActualLastRow, formatDate } = require("../../services/helpers");
 const { checkSessionAndGetUser } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 async function getEnrolledListCached(page, pageSize, forceRefresh, searchQuery, clientData) {
   try {
@@ -75,7 +76,11 @@ async function getEnrolledListCached(page, pageSize, forceRefresh, searchQuery, 
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString(), timestamp: new Date().toISOString() });
+    return JSON.stringify(
+      safeErrorResponse("getEnrolledListCached failed", error, {
+        timestamp: new Date().toISOString(),
+      }),
+    );
   }
 }
 

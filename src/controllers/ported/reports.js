@@ -3,6 +3,7 @@ const { SETTINGS } = require("../../services/settings");
 const { isRowEmpty, getActualLastRow, formatDate } = require("../../services/helpers");
 const { checkSessionAndGetUser, initializeActivityLogSheet, logActivity } = require("../../services/auth");
 const { normalizeRegionCode, isAmisProgramRegion } = require("../../services/amisRegions");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 // Note: matches the original exactly — getRegionsList has no session
 // check in Code.gs either.
@@ -54,7 +55,7 @@ async function getRegionsList() {
 
     return JSON.stringify({ success: true, regions: Array.from(regions).sort() });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString(), regions: [] });
+    return JSON.stringify(safeErrorResponse("getRegionsList failed", error, { regions: [] }));
   }
 }
 
@@ -98,7 +99,7 @@ async function getBarangayList(clientData) {
 
     return JSON.stringify({ success: true, barangays: Array.from(barangays).sort() });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString(), barangays: [] });
+    return JSON.stringify(safeErrorResponse("getBarangayList failed", error, { barangays: [] }));
   }
 }
 
@@ -134,7 +135,7 @@ async function getActivityLogs(limit, clientData) {
 
     return JSON.stringify({ success: true, logs: logs.reverse() });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("getActivityLogs failed", error));
   }
 }
 
@@ -158,7 +159,7 @@ async function getDataChangeTimestamp(clientData) {
       recordCount: Math.max(0, actualLastRow - 1),
     });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("getDataChangeTimestamp failed", error));
   }
 }
 
@@ -330,7 +331,7 @@ async function generateReport(reportType, filters, clientData) {
 
     return JSON.stringify({ success: true, reportData });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("generateReport failed", error));
   }
 }
 

@@ -1,6 +1,7 @@
 const { hashPassword } = require("../../services/crypto");
 const { initializeUsersSheet, logActivity } = require("../../services/auth");
 const { SETTINGS } = require("../../services/settings");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 function sanitizeInput(input) {
   if (typeof input !== "string") return input;
@@ -80,7 +81,7 @@ async function signup(data) {
       },
     });
   } catch (error) {
-    return JSON.stringify({ success: false, message: "Error: " + error.toString() });
+    return JSON.stringify(safeErrorResponse("signup failed", error));
   }
 }
 

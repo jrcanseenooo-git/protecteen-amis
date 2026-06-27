@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const sheets = require("../models/sheetsClient");
 const { SETTINGS } = require("./settings");
+const { safeErrorResponse } = require("./errorResponse");
 
 function generateSessionToken() {
   return crypto.randomUUID() + "_" + Date.now();
@@ -147,7 +148,7 @@ async function checkSessionAndGetUser(clientData) {
 
     return { success: true, user: clientData.user };
   } catch (error) {
-    return { success: false, message: "Session error: " + error.toString() };
+    return safeErrorResponse("checkSessionAndGetUser failed", error);
   }
 }
 

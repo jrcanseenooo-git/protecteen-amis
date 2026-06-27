@@ -1,5 +1,6 @@
 const sheets = require("../models/sheetsClient");
 const { SETTINGS } = require("./settings");
+const { safeErrorResponse } = require("./errorResponse");
 
 // ── Direct ports, unchanged logic ──────────────────────────────────
 
@@ -242,7 +243,7 @@ async function checkForDuplicates(data) {
 
     return { isDuplicate: false };
   } catch (error) {
-    return { isDuplicate: false, error: error.toString() };
+    return { isDuplicate: false, ...safeErrorResponse("checkForDuplicates failed", error) };
   }
 }
 

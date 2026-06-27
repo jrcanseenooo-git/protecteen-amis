@@ -2,6 +2,7 @@ const sheets = require("../../models/sheetsClient");
 const { SETTINGS } = require("../../services/settings");
 const { getActualLastRow, sanitizeInput, validateFormData } = require("../../services/helpers");
 const { checkSessionAndGetUser, logActivity } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 async function updateBasicInfo(data, clientData) {
   try {
@@ -69,7 +70,7 @@ async function updateBasicInfo(data, clientData) {
 
     return JSON.stringify({ success: true, message: "Basic information updated successfully" });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("updateBasicInfo failed", error));
   }
 }
 

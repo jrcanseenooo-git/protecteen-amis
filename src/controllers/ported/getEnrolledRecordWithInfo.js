@@ -2,6 +2,7 @@ const sheets = require("../../models/sheetsClient");
 const { SETTINGS } = require("../../services/settings");
 const { getActualLastRow, formatDate } = require("../../services/helpers");
 const { checkSessionAndGetUser } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 const INFO_HEADERS = [
   "ID Number", "Full Name", "Address", "Education", "Education Level Detail",
@@ -233,7 +234,7 @@ async function getEnrolledRecordWithInfo(idNumber, clientData) {
 
     return JSON.stringify({ success: true, enrolledRecord, additionalInfo, healthcareData });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("getEnrolledRecordWithInfo failed", error));
   }
 }
 

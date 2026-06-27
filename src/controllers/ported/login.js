@@ -7,6 +7,7 @@ const {
   isAccountLockedOut,
   updateFailedLoginAttempts,
 } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 async function login(data) {
   try {
@@ -107,7 +108,7 @@ async function login(data) {
     await logActivity("LOGIN_FAILED", { email: data.email, reason: "Email not found" });
     return JSON.stringify({ success: false, message: "Email not found" });
   } catch (error) {
-    return JSON.stringify({ success: false, message: "Error: " + error.toString() });
+    return JSON.stringify(safeErrorResponse("login failed", error));
   }
 }
 

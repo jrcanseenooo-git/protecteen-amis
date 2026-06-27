@@ -8,6 +8,7 @@ const {
   logActivity,
   getAccountStatus,
 } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 // toggleUserStatus — original Code.gs version takes no session check at
 // all (an existing gap, not something this port introduced). Kept as-is.
@@ -73,7 +74,7 @@ async function getAllUsers(clientData) {
 
     return JSON.stringify({ success: true, users });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("getAllUsers failed", error));
   }
 }
 
@@ -101,7 +102,7 @@ async function unlockAccount(email, clientData) {
     }
     return JSON.stringify({ success: false, message: "User not found" });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("unlockAccount failed", error));
   }
 }
 
@@ -125,7 +126,7 @@ async function autoUnlockExpiredAccounts() {
 
     return JSON.stringify({ success: true, unlockedCount });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("autoUnlockExpiredAccounts failed", error));
   }
 }
 
@@ -155,7 +156,7 @@ async function deleteUser(email, clientData) {
     }
     return JSON.stringify({ success: false, message: "User not found" });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("deleteUser failed", error));
   }
 }
 
@@ -216,7 +217,7 @@ async function updatePassword(email, newPassword, currentPassword, clientData) {
     }
     return JSON.stringify({ success: false, message: "User not found" });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("updatePassword failed", error));
   }
 }
 

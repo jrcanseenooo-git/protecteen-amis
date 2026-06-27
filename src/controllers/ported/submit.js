@@ -10,6 +10,7 @@ const {
   withIdLock,
 } = require("../../services/helpers");
 const { checkSessionAndGetUser, logActivity } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 async function submit(data, isUpdate = false, clientData) {
   try {
@@ -166,7 +167,7 @@ async function submit(data, isUpdate = false, clientData) {
       generatedId: id,
     });
   } catch (error) {
-    return JSON.stringify({ success: false, message: "Error: " + error.toString() });
+    return JSON.stringify(safeErrorResponse("submit failed", error));
   }
 }
 

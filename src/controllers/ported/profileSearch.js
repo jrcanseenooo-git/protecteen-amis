@@ -2,6 +2,7 @@ const sheets = require("../../models/sheetsClient");
 const { SETTINGS } = require("../../services/settings");
 const { isRowEmpty, getActualLastRow, formatDate, sanitizeInput } = require("../../services/helpers");
 const { checkSessionAndGetUser } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 async function searchNames(searchValue, clientData) {
   try {
@@ -70,7 +71,7 @@ async function searchNames(searchValue, clientData) {
     const limitedMatches = matches.slice(0, 10);
     return JSON.stringify({ success: true, names: limitedMatches.map((m) => m.fullName) });
   } catch (error) {
-    return JSON.stringify({ success: false, names: [], message: error.toString() });
+    return JSON.stringify(safeErrorResponse("searchNames failed", error, { names: [] }));
   }
 }
 
@@ -201,7 +202,7 @@ async function searchRecordByName(fullName, clientData) {
 
     return JSON.stringify({ success: false, message: "No record found in your region" });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("searchRecordByName failed", error));
   }
 }
 

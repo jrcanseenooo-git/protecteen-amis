@@ -2,6 +2,7 @@ const sheets = require("../../models/sheetsClient");
 const { SETTINGS } = require("../../services/settings");
 const { getActualLastRow, sanitizeInput } = require("../../services/helpers");
 const { checkSessionAndGetUser, logActivity } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 const INFO_HEADERS = [
   "ID Number", "Full Name", "Address", "Education", "Education Level Detail",
@@ -218,7 +219,7 @@ async function saveEnrolledInfo(data, clientData) {
 
     return JSON.stringify({ success: true, message: "Information saved successfully" });
   } catch (error) {
-    return JSON.stringify({ success: false, message: "Error: " + error.toString() });
+    return JSON.stringify(safeErrorResponse("saveEnrolledInfo failed", error));
   }
 }
 

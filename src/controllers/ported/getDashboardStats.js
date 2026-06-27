@@ -8,6 +8,7 @@ const {
   createAmisRegionCounter,
   createAmisSessionStatsByRegion,
 } = require("../../services/amisRegions");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 function getEmptyStats() {
   const emptySessionStats = { all: { present: 0, absent: 0, exempted: 0, totalMarked: 0 } };
@@ -369,7 +370,7 @@ async function getDashboardStats(clientData) {
 
     return JSON.stringify({ success: true, stats });
   } catch (error) {
-    return JSON.stringify({ success: false, message: error.toString() });
+    return JSON.stringify(safeErrorResponse("getDashboardStats failed", error));
   }
 }
 

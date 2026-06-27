@@ -1,4 +1,5 @@
 const { checkSessionAndGetUser, logActivity } = require("../../services/auth");
+const { safeErrorResponse } = require("../../services/errorResponse");
 
 async function checkSession(clientData) {
   try {
@@ -37,7 +38,7 @@ async function checkSession(clientData) {
     }
     return JSON.stringify({ success: false, message: result.message, silent: true });
   } catch (error) {
-    return JSON.stringify({ success: false, message: "Session error: " + error.toString(), silent: true });
+    return JSON.stringify(safeErrorResponse("checkSession failed", error, { silent: true }));
   }
 }
 
@@ -48,7 +49,7 @@ async function logoutSession(clientData) {
     }
     return JSON.stringify({ success: true, message: "Logged out successfully" });
   } catch (error) {
-    return JSON.stringify({ success: false, message: "Error: " + error.toString() });
+    return JSON.stringify(safeErrorResponse("logoutSession failed", error));
   }
 }
 
