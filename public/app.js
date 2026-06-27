@@ -170,6 +170,19 @@
         toggleStatusDialog: false,
         toggleStatusTarget: null,
         togglingStatus: false,
+        actionConfirmDialog: false,
+        actionConfirmPersistent: false,
+        actionConfirmCallback: null,
+        actionConfirm: {
+          title: "Confirm Action",
+          subtitle: "Please review before continuing",
+          message: "This action will save changes.",
+          confirmText: "Confirm",
+          icon: "mdi-alert-circle-outline",
+          confirmIcon: "mdi-check",
+          color: "linear-gradient(135deg,#7257b3 0%,#764ba2 100%)",
+          buttonColor: "#7257b3",
+        },
         isLoggedIn: false,
         checkingSession: true,
         usersRefreshInterval: null,
@@ -2377,6 +2390,51 @@
     },
 
     methods: {
+      requestActionConfirm(options, callback) {
+        this.actionConfirm = {
+          title: options.title || "Confirm Action",
+          subtitle: options.subtitle || "Please review before continuing",
+          message: options.message || "This action will save changes.",
+          confirmText: options.confirmText || "Confirm",
+          icon: options.icon || "mdi-alert-circle-outline",
+          confirmIcon: options.confirmIcon || "mdi-check",
+          color:
+            options.color ||
+            "linear-gradient(135deg,#7257b3 0%,#764ba2 100%)",
+          buttonColor: options.buttonColor || "#7257b3",
+        };
+        this.actionConfirmPersistent = !!options.persistent;
+        this.actionConfirmCallback = callback;
+        this.actionConfirmDialog = true;
+      },
+
+      cancelActionConfirm() {
+        this.actionConfirmDialog = false;
+        this.actionConfirmCallback = null;
+      },
+
+      runActionConfirm() {
+        const callback = this.actionConfirmCallback;
+        this.actionConfirmDialog = false;
+        this.actionConfirmCallback = null;
+        if (typeof callback === "function") {
+          callback();
+        }
+      },
+
+      confirmWriteAction(options, callback) {
+        this.requestActionConfirm(
+          {
+            subtitle: "This change may affect saved records",
+            confirmText: "Yes, Continue",
+            icon: "mdi-content-save-alert-outline",
+            confirmIcon: "mdi-check",
+            ...options,
+          },
+          callback,
+        );
+      },
+
       // Form Auto-Save Methods
       startFormAutoSave() {
         this.autoSaveInterval = setInterval(() => {
@@ -2419,7 +2477,17 @@
         this.ptEditDialog = true;
       },
 
-      savePTEdit() {
+      savePTEdit(confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save PT Results?",
+              message: "This will update the pregnancy test result record.",
+            },
+            () => this.savePTEdit(true),
+          );
+          return;
+        }
         this.savingPT = true;
         google.script.run
           .withSuccessHandler((response) => {
@@ -2440,7 +2508,7 @@
           .savePTResult(this.ptEditData, this.getSessionData());
       },
 
-      savePTBulk() {
+      savePTBulk(confirmed = false) {
         // Validate
         if (!this.ptBulkYear || !this.ptBulkQuarterNum || !this.ptBulkResult) {
           this.showSnackbar("Select a year, quarter, and result first.", "error");
@@ -2448,6 +2516,17 @@
         }
         if (this.ptBulkSelected.length === 0) {
           this.showSnackbar("Select at least one beneficiary.", "error");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Apply PT Result to Selected Records?",
+              message: `This will update ${this.ptBulkSelected.length} selected beneficiary record(s).`,
+            },
+            () => this.savePTBulk(true),
+          );
           return;
         }
 
@@ -2802,7 +2881,17 @@
           });
       },
 
-      saveForcePassword() {
+      saveForcePassword(confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Set New Password?",
+              message: "This will save your new account password.",
+            },
+            () => this.saveForcePassword(true),
+          );
+          return;
+        }
         this.savingForcePassword = true;
         google.script.run
           .withSuccessHandler((result) => {
@@ -2995,13 +3084,24 @@
         return Math.round((item.completedSessions / 24) * 100);
       },
 
-      saveBulkScores() {
+      saveBulkScores(confirmed = false) {
         if (this.bulkScoreValue === null || !this.bulkScoreSession) {
           this.showSnackbar("Please select a session and score", "warning");
           return;
         }
         if (this.sessionTestBulkSelected.length === 0) {
           this.showSnackbar("No beneficiaries selected", "warning");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Batch Scores?",
+              message: `This will save ${this.bulkScoreType.toUpperCase()} scores for ${this.sessionTestBulkSelected.length} selected beneficiary record(s).`,
+            },
+            () => this.saveBulkScores(true),
+          );
           return;
         }
 
@@ -3083,12 +3183,22 @@
         this.bulkScoreDialog = true;
       },
 
-      saveSessionTestScore() {
+      saveSessionTestScore(confirmed = false) {
         if (
           this.sessionTestScoreInput === null ||
           this.sessionTestScoreInput === ""
         ) {
           this.showSnackbar("Please select a score (0-5)", "warning");
+          return;
+        }
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Session Test Score?",
+              message: "This will update the selected pre/post test score.",
+            },
+            () => this.saveSessionTestScore(true),
+          );
           return;
         }
         this.savingSessionTest = true;
@@ -4483,7 +4593,17 @@
       },
 
       // Update profile only for Q1-Y1
-      updateQ1Y1Profile() {
+      updateQ1Y1Profile(confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Update AMVAT Profile?",
+              message: "This will update the beneficiary profile details for the baseline assessment.",
+            },
+            () => this.updateQ1Y1Profile(true),
+          );
+          return;
+        }
         this.amvatLoading = true;
 
         const profileData = {
@@ -5112,7 +5232,7 @@
         };
       },
 
-      addNewUser() {
+      addNewUser(confirmed = false) {
         if (
           !this.newUserData.email ||
           !this.newUserData.password ||
@@ -5128,6 +5248,17 @@
           !this.newUserData.region
         ) {
           this.showSnackbar("Region is required for Case Managers", "error");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Create User Account?",
+              message: `This will create a new ${this.newUserData.role} account for ${this.newUserData.email}.`,
+            },
+            () => this.addNewUser(true),
+          );
           return;
         }
 
@@ -5152,8 +5283,18 @@
           .signup(this.newUserData);
       },
 
-      confirmDeleteUser(user) {
-        if (!confirm(`Are you sure you want to delete user: ${user.name}?`)) {
+      confirmDeleteUser(user, confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Delete User Account?",
+              message: `This will permanently delete the account for ${user.name}.`,
+              buttonColor: "error",
+              confirmIcon: "mdi-delete",
+              confirmText: "Yes, Delete",
+            },
+            () => this.confirmDeleteUser(user, true),
+          );
           return;
         }
 
@@ -5188,7 +5329,7 @@
         this.passwordDialog = true;
       },
 
-      changePassword() {
+      changePassword(confirmed = false) {
         if (
           !this.passwordData.newPassword ||
           !this.passwordData.confirmPassword
@@ -5201,6 +5342,17 @@
           this.passwordData.newPassword !== this.passwordData.confirmPassword
         ) {
           this.showSnackbar("Passwords do not match", "error");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Update User Password?",
+              message: `This will change the password for ${this.passwordDialogUser?.email || "the selected user"}.`,
+            },
+            () => this.changePassword(true),
+          );
           return;
         }
 
@@ -5558,7 +5710,7 @@
         });
       },
 
-      submit() {
+      submit(confirmed = false) {
         if (!this.$refs.enrollForm.validate()) {
           this.showSnackbar("Please fill out all required fields", "error");
           return;
@@ -5566,6 +5718,21 @@
 
         if (!this.enrollForm.signature.value) {
           this.showSnackbar("Please provide a signature", "error");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: this.enrollForm._alreadyEnrolled
+                ? "Update Enrollment Record?"
+                : "Submit New Enrollment?",
+              message: this.enrollForm._alreadyEnrolled
+                ? "This will update the existing enrolled beneficiary record."
+                : "This will save a new enrolled beneficiary record.",
+            },
+            () => this.submit(true),
+          );
           return;
         }
 
@@ -5638,8 +5805,15 @@
         return `Unlocks in ${seconds}s`;
       },
 
-      unlockUserAccount(user) {
-        if (!confirm(`Unlock account for ${user.name}?`)) {
+      unlockUserAccount(user, confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Unlock User Account?",
+              message: `This will unlock the account for ${user.name}.`,
+            },
+            () => this.unlockUserAccount(user, true),
+          );
           return;
         }
 
@@ -5797,15 +5971,34 @@
       },
 
       removeChild(index) {
-        if (confirm("Are you sure you want to remove this child?")) {
-          this.additionalInfo.childrenData.splice(index, 1);
-          this.showSnackbar("Child removed", "info");
-        }
+        this.confirmWriteAction(
+          {
+            title: "Remove Child From List?",
+            message: "This removes the child from the current beneficiary details before saving.",
+            buttonColor: "error",
+            confirmIcon: "mdi-delete",
+          },
+          () => {
+            this.additionalInfo.childrenData.splice(index, 1);
+            this.showSnackbar("Child removed", "info");
+          },
+        );
       },
 
-      saveSessionAttendance() {
+      saveSessionAttendance(confirmed = false) {
         if (!this.selectedRecord) {
           this.showSnackbar("No record selected", "error");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Session Attendance?",
+              message: "This will update session attendance for the selected beneficiary.",
+            },
+            () => this.saveSessionAttendance(true),
+          );
           return;
         }
 
@@ -5838,9 +6031,20 @@
           );
       },
 
-      saveAdditionalInfo() {
+      saveAdditionalInfo(confirmed = false) {
         if (!this.selectedRecord) {
           this.showSnackbar("No record selected", "error");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Additional Information?",
+              message: "This will update the beneficiary's additional information.",
+            },
+            () => this.saveAdditionalInfo(true),
+          );
           return;
         }
 
@@ -5870,9 +6074,20 @@
           .saveEnrolledInfo(data, this.getSessionData());
       },
 
-      saveGranteeInfo() {
+      saveGranteeInfo(confirmed = false) {
         if (!this.selectedRecord) {
           this.showSnackbar("No record selected", "error");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Grantee Information?",
+              message: "This will update the beneficiary's authorized grantee details.",
+            },
+            () => this.saveGranteeInfo(true),
+          );
           return;
         }
 
@@ -5931,10 +6146,18 @@
       },
 
       removeIncome(index) {
-        if (confirm("Are you sure you want to remove this income source?")) {
-          this.additionalInfo.incomeData.splice(index, 1);
-          this.showSnackbar("Income source removed", "info");
-        }
+        this.confirmWriteAction(
+          {
+            title: "Remove Income Source?",
+            message: "This removes the income source from the current beneficiary details before saving.",
+            buttonColor: "error",
+            confirmIcon: "mdi-delete",
+          },
+          () => {
+            this.additionalInfo.incomeData.splice(index, 1);
+            this.showSnackbar("Income source removed", "info");
+          },
+        );
       },
 
       calculateCombinedIncome() {
@@ -6302,7 +6525,17 @@
         return record ? record.name : id;
       },
 
-      executeBulkUpdate() {
+      executeBulkUpdate(confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Mark Selected Sessions Present?",
+              message: `This will update ${this.selectedBeneficiaries.length} beneficiary record(s) across ${this.selectedSessions.length} selected session(s).`,
+            },
+            () => this.executeBulkUpdate(true),
+          );
+          return;
+        }
         this.loading = true;
 
         const updates = this.selectedBeneficiaries.map((id) => {
@@ -6392,32 +6625,50 @@
       },
 
       clearAllIndividualSessions() {
-        if (
-          !confirm(
-            "Clear all session attendance? This will mark all sessions as absent.",
-          )
-        ) {
-          return;
-        }
-        for (let i = 1; i <= 24; i++) {
-          this.currentIndividualRecord.attendance[`M${i}`] = "Absent";
-        }
-        this.showSnackbar("All sessions cleared", "info");
+        this.confirmWriteAction(
+          {
+            title: "Clear Session Attendance?",
+            message: "This will mark all 24 sessions as absent for this beneficiary.",
+            buttonColor: "warning",
+          },
+          () => {
+            for (let i = 1; i <= 24; i++) {
+              this.currentIndividualRecord.attendance[`M${i}`] = "Absent";
+            }
+            this.showSnackbar("All sessions cleared", "info");
+          },
+        );
       },
 
       markAllIndividualPresent() {
-        if (!confirm("Mark all 24 sessions as present?")) {
-          return;
-        }
-        for (let i = 1; i <= 24; i++) {
-          this.currentIndividualRecord.attendance[`M${i}`] = "Present";
-        }
-        this.showSnackbar("All sessions marked present", "success");
+        this.confirmWriteAction(
+          {
+            title: "Mark All Sessions Present?",
+            message: "This will mark all 24 sessions as present for this beneficiary.",
+          },
+          () => {
+            for (let i = 1; i <= 24; i++) {
+              this.currentIndividualRecord.attendance[`M${i}`] = "Present";
+            }
+            this.showSnackbar("All sessions marked present", "success");
+          },
+        );
       },
 
-      saveIndividualAttendance() {
+      saveIndividualAttendance(confirmed = false) {
         if (!this.currentIndividualRecord) {
           this.showSnackbar("No record selected", "error");
+          return;
+        }
+
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Attendance Changes?",
+              message: "This will update the selected beneficiary's session attendance.",
+            },
+            () => this.saveIndividualAttendance(true),
+          );
           return;
         }
 
@@ -6614,7 +6865,17 @@
         this.healthcareDialog = true;
       },
 
-      saveHealthcareRecord() {
+      saveHealthcareRecord(confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Healthcare Record?",
+              message: "This will update the beneficiary healthcare monitoring record.",
+            },
+            () => this.saveHealthcareRecord(true),
+          );
+          return;
+        }
         this.savingHealthcare = true;
         const payload = {
           id_number: this.healthcareEditRecord.id_number,
@@ -6698,9 +6959,21 @@
         this.payoutFormData.grantee_name = "";
       },
 
-      savePayout() {
+      savePayout(confirmed = false) {
         if (!this.$refs.payoutForm.validate()) {
           this.showSnackbar("Please fill all required fields", "error");
+          return;
+        }
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: this.editingPayout ? "Update Payout?" : "Save Payout?",
+              message: this.editingPayout
+                ? "This will update the selected payout record."
+                : "This will create a new payout record.",
+            },
+            () => this.savePayout(true),
+          );
           return;
         }
         this.savingPayout = true;
@@ -6732,8 +7005,17 @@
           );
       },
 
-      markPayoutReleased(item) {
-        if (!confirm(`Mark payout for ${item.name} as Released?`)) return;
+      markPayoutReleased(item, confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Mark Payout Released?",
+              message: `This will mark the payout for ${item.name} as Released.`,
+            },
+            () => this.markPayoutReleased(item, true),
+          );
+          return;
+        }
         google.script.run
           .withSuccessHandler((response) => {
             const result = JSON.parse(response);
@@ -6821,9 +7103,19 @@
         this.granteeViewDialog = true;
       },
 
-      saveGrantee() {
+      saveGrantee(confirmed = false) {
         if (!this.$refs.granteeForm.validate()) {
           this.showSnackbar("Please fill all required fields", "error");
+          return;
+        }
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Grantee Changes?",
+              message: "This will update the authorized grantee details.",
+            },
+            () => this.saveGrantee(true),
+          );
           return;
         }
         this.savingGrantee = true;
@@ -6855,9 +7147,20 @@
           );
       },
 
-      deleteGrantee(item) {
-        if (!confirm(`Remove grantee ${item.grantee_name} for ${item.name}?`))
+      deleteGrantee(item, confirmed = false) {
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Remove Grantee?",
+              message: `This will remove ${item.grantee_name} from ${item.name}'s grantee record.`,
+              buttonColor: "error",
+              confirmIcon: "mdi-delete",
+              confirmText: "Yes, Remove",
+            },
+            () => this.deleteGrantee(item, true),
+          );
           return;
+        }
         google.script.run
           .withSuccessHandler((response) => {
             const result = JSON.parse(response);
