@@ -1,5 +1,11 @@
 # AMIS on Vercel — hybrid Apps Script backend
 
+Before any local or live deploy, read
+[`SECURITY_DEPLOYMENT_RULES.md`](SECURITY_DEPLOYMENT_RULES.md) and run
+`npm run deploy:check`. Do not create new Apps Script web app URLs for
+routine updates; manage the existing deployment and version it clearly
+instead.
+
 Recommended production setup for this repo:
 
 - Vercel serves the unchanged AMIS frontend from `public/`.

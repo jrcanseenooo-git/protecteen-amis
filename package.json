@@ -4,8 +4,11 @@
   "private": true,
   "description": "AMIS (Adolescent Mother Information System)",
   "scripts": {
+    "audit:high": "npm audit --audit-level=high",
     "build": "node scripts/build.js",
+    "deploy:check": "npm run audit:high && npm run build",
     "dev": "node scripts/dev-server.js",
+    "prevercel:dev": "npm run audit:high",
     "vercel:dev": "vercel dev"
   },
   "dependencies": {

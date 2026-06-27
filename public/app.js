@@ -214,6 +214,10 @@
         amvatRecordQuarterFilter: null,
         amvatRecordYearFilter: null,
         amvatAvailableQuarters: [],
+        amvatCompareMode: "all",
+        amvatCompareBaseQuarter: "Baseline",
+        amvatCompareTargetQuarter: "Q1-Y1",
+        amvatCompareBeneficiaryKey: null,
         sessionFilterSession: "",
         sessionFilterAttStatus: null,
         sessionTestPolling: null,
@@ -1361,6 +1365,20 @@
         return all;
       },
 
+      amvatCompareQuarterOptions() {
+        const options = this.amvatQuarterFilterOptions.filter(
+          (item) => item.value,
+        );
+        const values = options.map((item) => item.value);
+        [
+          { title: "Baseline", value: "Baseline" },
+          { title: "Q1 - Year 1", value: "Q1-Y1" },
+        ].forEach((item) => {
+          if (!values.includes(item.value)) options.push(item);
+        });
+        return options;
+      },
+
       sessionProvinceOptions() {
         return [
           ...new Set(
@@ -1499,6 +1517,120 @@
         }
 
         return list;
+      },
+
+      amvatCompareBeneficiaryOptions() {
+        return this.filteredAmvatTableRecords
+          .map((record) => ({
+            title: `${record.name || "Unnamed"}${record.idNumber ? " - " + record.idNumber : ""}`,
+            value: this.amvatRecordKey(record),
+          }))
+          .sort((a, b) => a.title.localeCompare(b.title));
+      },
+
+      amvatComparisonSourceRecords() {
+        if (this.amvatCompareMode !== "selected") {
+          return this.filteredAmvatTableRecords;
+        }
+        if (!this.amvatCompareBeneficiaryKey) return [];
+        return this.filteredAmvatTableRecords.filter(
+          (record) =>
+            this.amvatRecordKey(record) === this.amvatCompareBeneficiaryKey,
+        );
+      },
+
+      amvatComparisonRows() {
+        const base = this.amvatCompareBaseQuarter;
+        const target = this.amvatCompareTargetQuarter;
+        if (!base || !target || base === target) return [];
+
+        return this.amvatComparisonSourceRecords
+          .map((record) => {
+            const baseScore = this.getAmvatQuarterScore(record, base);
+            const targetScore = this.getAmvatQuarterScore(record, target);
+            if (baseScore === null || targetScore === null) return null;
+
+            return {
+              key: this.amvatRecordKey(record),
+              name: record.name || "-",
+              idNumber: record.idNumber || "",
+              address: [record.barangay, record.province].filter(Boolean).join(", "),
+              baseScore,
+              targetScore,
+              delta: targetScore - baseScore,
+              baseDomain: record.domainScores?.[base] || null,
+              targetDomain: record.domainScores?.[target] || null,
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+      },
+
+      amvatComparisonSummary() {
+        const rows = this.amvatComparisonRows;
+        const avg = (field) =>
+          rows.length
+            ? rows.reduce((sum, row) => sum + row[field], 0) / rows.length
+            : 0;
+        const improved = rows.filter((row) => row.delta > 0).length;
+        const declined = rows.filter((row) => row.delta < 0).length;
+        const unchanged = rows.filter((row) => row.delta === 0).length;
+        const baseAvg = avg("baseScore");
+        const targetAvg = avg("targetScore");
+
+        return {
+          count: rows.length,
+          baseAvg,
+          targetAvg,
+          deltaAvg: targetAvg - baseAvg,
+          improved,
+          declined,
+          unchanged,
+        };
+      },
+
+      amvatComparisonDomains() {
+        const domains = [
+          { key: "empowerment", label: "Empowerment", color: "#7c3aed" },
+          { key: "pregnancy", label: "ASRH", color: "#db2777" },
+          { key: "health", label: "Health", color: "#0891b2" },
+          { key: "education", label: "Education", color: "#059669" },
+          { key: "support", label: "Support", color: "#d97706" },
+          { key: "mentalhealth", label: "Mental Health", color: "#e11d48" },
+        ];
+        const rows = this.amvatComparisonRows;
+
+        return domains.map((domain) => {
+          const baseVals = [];
+          const targetVals = [];
+          rows.forEach((row) => {
+            const baseVal = row.baseDomain?.[domain.key];
+            const targetVal = row.targetDomain?.[domain.key];
+            if (
+              baseVal !== null &&
+              baseVal !== undefined &&
+              targetVal !== null &&
+              targetVal !== undefined &&
+              !isNaN(baseVal) &&
+              !isNaN(targetVal)
+            ) {
+              baseVals.push(Number(baseVal));
+              targetVals.push(Number(targetVal));
+            }
+          });
+          const baseAvg = baseVals.length
+            ? baseVals.reduce((sum, val) => sum + val, 0) / baseVals.length
+            : 0;
+          const targetAvg = targetVals.length
+            ? targetVals.reduce((sum, val) => sum + val, 0) / targetVals.length
+            : 0;
+          return {
+            ...domain,
+            baseAvg,
+            targetAvg,
+            delta: targetAvg - baseAvg,
+          };
+        });
       },
 
       // Paginated slice
@@ -2228,15 +2360,28 @@
 
       amvatRecordSearch() {
         this.amvatTblPage = 1;
+        this.ensureAmvatCompareBeneficiary();
       },
       amvatRecordQuarterFilter() {
         this.amvatTblPage = 1;
+        this.ensureAmvatCompareBeneficiary();
       },
       amvatRecordYearFilter() {
         this.amvatTblPage = 1;
+        this.ensureAmvatCompareBeneficiary();
       },
       amvatRecordRegionFilter() {
         this.amvatTblPage = 1;
+        this.ensureAmvatCompareBeneficiary();
+      },
+      amvatCompareMode() {
+        this.ensureAmvatCompareBeneficiary();
+      },
+      amvatCompareBaseQuarter() {
+        this.ensureDifferentAmvatCompareQuarters("base");
+      },
+      amvatCompareTargetQuarter() {
+        this.ensureDifferentAmvatCompareQuarters("target");
       },
 
       sessionTestSearch() {
@@ -3341,6 +3486,7 @@
             if (result.success) {
               this.amvatRecords = result.records;
               this.amvatAvailableQuarters = result.availableQuarters || [];
+              this.ensureAmvatCompareBeneficiary();
             } else {
               this.showSnackbar(
                 result.message || "Failed to load AMVAT records",
@@ -3354,6 +3500,74 @@
             this.showSnackbar("Error: " + error, "error");
           })
           .getAllAMVATRecords(this.getSessionData());
+      },
+
+      amvatRecordKey(record) {
+        return record?.idNumber || record?.name || "";
+      },
+
+      getAmvatQuarterScore(record, quarter) {
+        const value = record?.scores?.[quarter];
+        if (value === null || value === undefined || value === "") return null;
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : null;
+      },
+
+      amvatCompareQuarterLabel(quarter) {
+        const option = this.amvatCompareQuarterOptions.find(
+          (item) => item.value === quarter,
+        );
+        return option?.title || quarter || "-";
+      },
+
+      formatAmvatScore(value) {
+        if (value === null || value === undefined || isNaN(value)) return "-";
+        return Number(value).toFixed(1).replace(/\.0$/, "");
+      },
+
+      formatAmvatDelta(value) {
+        if (value === null || value === undefined || isNaN(value)) return "-";
+        const rounded = Number(value).toFixed(1).replace(/\.0$/, "");
+        return value > 0 ? `+${rounded}` : rounded;
+      },
+
+      amvatDeltaColor(value) {
+        if (value > 0) return "#059669";
+        if (value < 0) return "#dc2626";
+        return "#64748b";
+      },
+
+      ensureAmvatCompareBeneficiary() {
+        if (this.amvatCompareMode !== "selected") return;
+        const options = this.amvatCompareBeneficiaryOptions || [];
+        if (
+          !this.amvatCompareBeneficiaryKey ||
+          !options.some((item) => item.value === this.amvatCompareBeneficiaryKey)
+        ) {
+          this.amvatCompareBeneficiaryKey = options[0]?.value || null;
+        }
+      },
+
+      ensureDifferentAmvatCompareQuarters(changedSide) {
+        if (
+          !this.amvatCompareBaseQuarter ||
+          !this.amvatCompareTargetQuarter ||
+          this.amvatCompareBaseQuarter !== this.amvatCompareTargetQuarter
+        ) {
+          return;
+        }
+
+        const options = this.amvatCompareQuarterOptions
+          .map((item) => item.value)
+          .filter(Boolean);
+        const replacement =
+          options.find((q) => q !== this.amvatCompareBaseQuarter) || null;
+
+        if (changedSide === "base") {
+          this.amvatCompareTargetQuarter = replacement;
+        } else {
+          this.amvatCompareBaseQuarter = replacement;
+        }
       },
 
       getAmvatScoreSeries(record) {
@@ -4090,7 +4304,15 @@
           .withSuccessHandler((result) => {
             this.amvatLoading = false;
             this.amvatSaving = false;
-            if (result.success) {
+            let response;
+            try {
+              response = typeof result === "string" ? JSON.parse(result) : result;
+            } catch (error) {
+              this.showSnackbar("Submission failed: invalid backend response", "error");
+              return;
+            }
+
+            if (response.success) {
               this.amvatResults = scores;
               this.amvatPage = 10;
               this.showSnackbar(
@@ -4102,7 +4324,10 @@
                 "success",
               );
             } else {
-              this.showSnackbar(result.error || "Submission failed", "error");
+              this.showSnackbar(
+                response.error || response.message || "Submission failed",
+                "error",
+              );
             }
           })
           .withFailureHandler((error) => {
