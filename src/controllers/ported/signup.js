@@ -1,6 +1,6 @@
-const { hashPassword } = require("../lib/crypto");
-const { initializeUsersSheet, logActivity } = require("../lib/auth");
-const { SETTINGS } = require("../lib/settings");
+const { hashPassword } = require("../../services/crypto");
+const { initializeUsersSheet, logActivity } = require("../../services/auth");
+const { SETTINGS } = require("../../services/settings");
 
 function sanitizeInput(input) {
   if (typeof input !== "string") return input;

@@ -1,4 +1,4 @@
-const { checkSessionAndGetUser, logActivity } = require("../lib/auth");
+const { checkSessionAndGetUser, logActivity } = require("../../services/auth");
 
 async function checkSession(clientData) {
   try {

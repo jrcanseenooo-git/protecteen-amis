@@ -81,14 +81,28 @@ public/
   app.js                    # = script.html, tags stripped
   google-script-shim.js     # new: google.script.run polyfill
 api/
-  rpc.js                    # single endpoint the shim calls
-lib/
-  sheetsClient.js           # Sheets API wrapper shaped like SpreadsheetApp
-  auth.js                   # checkSessionAndGetUser, logActivity, lockout helpers
-  crypto.js                 # hashPassword (same SHA-256+salt as Apps Script)
-  settings.js               # = Code.gs's SETTINGS object, copied verbatim
-handlers/
-  login.js, signup.js, checkSession.js   # ported Code.gs functions, one file each
+  rpc.js                    # thin Vercel endpoint; reads body and delegates
+src/
+  rpcRouter.js              # RPC dispatcher/controller router
+  config/
+    registry.js             # exposed function sets and ported registry
+    appsScriptProxy.js      # Apps Script proxy and read cache
+  controllers/              # domain controllers for ported Code.gs functions
+    authController.js
+    userAdminController.js
+    enrolledController.js
+    dashboardController.js
+    reportsController.js
+    profileSearchController.js
+    healthcareController.js
+    ported/                 # unchanged ported function implementations
+  models/
+    sheetsClient.js         # Sheets API wrapper shaped like SpreadsheetApp
+  services/
+    auth.js                 # checkSessionAndGetUser, logActivity, lockout helpers
+    crypto.js               # hashPassword (same SHA-256+salt as Apps Script)
+    helpers.js
+    settings.js             # = Code.gs's SETTINGS object, copied verbatim
 ```
 
 ## Keeping credentials out of git
@@ -144,7 +158,7 @@ recommended hybrid production setup.
 
 ## Known carry-over, flagged on purpose
 
-`checkSessionAndGetUser` (in `lib/auth.js`) is ported with the exact
+`checkSessionAndGetUser` (in `src/services/auth.js`) is ported with the exact
 same behavior as Code.gs: it trusts the role/region the browser sends
 rather than re-checking the Users sheet's row. This matches your
 "don't change the logic" instruction, but worth repeating: once this
@@ -160,7 +174,7 @@ to watch for:
 
 - **`LockService`** (duplicate-ID prevention in `submit`) — replaced
   with a best-effort advisory lock using a `_locks` sheet
-  (`lib/helpers.js`'s `withIdLock`). It meaningfully reduces collision
+  (`src/services/helpers.js`'s `withIdLock`). It meaningfully reduces collision
   risk for normal use (case workers entering records one at a time)
   but is **not** a true atomic lock the way Apps Script's was — two
   submissions landing in the exact same instant could still grab the
@@ -168,7 +182,7 @@ to watch for:
   an external lock (Vercel KV / Upstash Redis `SETNX`), not this.
 - **`SpreadsheetApp.newCellImage()`** for digital signatures — Sheets
   API v4 has no equivalent for writing a base64 image as a rendered
-  cell image. `handlers/submit.js` now stores the raw base64 data URL
+  cell image. `src/controllers/ported/submit.js` now stores the raw base64 data URL
   as plain cell text instead. The app keeps working (it renders the
   signature from that string itself), but two things to verify with
   real signature data: (1) Google Sheets caps cells at ~50,000
@@ -181,11 +195,11 @@ to watch for:
 One more assumption worth checking: every date display in the app
 (`Utilities.formatDate(date, Session.getScriptTimeZone(), fmt)` in the
 original) now uses a hardcoded `Asia/Manila` timezone in
-`lib/helpers.js`'s `formatDate()`, since the region codes here are
+`src/services/helpers.js`'s `formatDate()`, since the region codes here are
 Philippines DOH/DSWD regions. If your original Apps Script project's
 timezone (Project Settings -> Time zone) was set to something else,
 every displayed date/time would be off by that difference — update
-the `TIMEZONE` constant in `lib/helpers.js` if so.
+the `TIMEZONE` constant in `src/services/helpers.js` if so.
 
 ## Migration checklist
 
@@ -206,8 +220,8 @@ record end-to-end, the main dashboard, and the report generator.
 
 **Still pending** — same porting pattern each time (read the Code.gs
 function, translate the SpreadsheetApp calls to the `sheets`/`Range`
-wrapper with `await`, drop it in `handlers/`, register it in
-`api/rpc.js`):
+wrapper with `await`, add it under `src/controllers/`, and register it in
+`src/config/registry.js`):
 
 **Dashboard (barangay view):** getDashboardStatsByBarangay,
 calculateAgeStatsByBarangay, calculateSessionStatsByBarangayGlobal

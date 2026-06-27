@@ -1,7 +1,7 @@
-const sheets = require("../lib/sheetsClient");
-const { SETTINGS } = require("../lib/settings");
-const { getActualLastRow, sanitizeInput, validateFormData } = require("../lib/helpers");
-const { checkSessionAndGetUser, logActivity } = require("../lib/auth");
+const sheets = require("../../models/sheetsClient");
+const { SETTINGS } = require("../../services/settings");
+const { getActualLastRow, sanitizeInput, validateFormData } = require("../../services/helpers");
+const { checkSessionAndGetUser, logActivity } = require("../../services/auth");
 
 async function updateBasicInfo(data, clientData) {
   try {

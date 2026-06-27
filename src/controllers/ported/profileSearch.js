@@ -1,7 +1,7 @@
-const sheets = require("../lib/sheetsClient");
-const { SETTINGS } = require("../lib/settings");
-const { isRowEmpty, getActualLastRow, formatDate, sanitizeInput } = require("../lib/helpers");
-const { checkSessionAndGetUser } = require("../lib/auth");
+const sheets = require("../../models/sheetsClient");
+const { SETTINGS } = require("../../services/settings");
+const { isRowEmpty, getActualLastRow, formatDate, sanitizeInput } = require("../../services/helpers");
+const { checkSessionAndGetUser } = require("../../services/auth");
 
 async function searchNames(searchValue, clientData) {
   try {

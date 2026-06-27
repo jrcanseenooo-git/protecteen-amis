@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const sheets = require("./sheetsClient");
+const sheets = require("../models/sheetsClient");
 const { SETTINGS } = require("./settings");
 
 function generateSessionToken() {

@@ -1,5 +1,5 @@
-const sheets = require("../lib/sheetsClient");
-const { SETTINGS } = require("../lib/settings");
+const sheets = require("../../models/sheetsClient");
+const { SETTINGS } = require("../../services/settings");
 const {
   isRowEmpty,
   getActualLastRow,
@@ -8,8 +8,8 @@ const {
   checkForDuplicates,
   generateNextId,
   withIdLock,
-} = require("../lib/helpers");
-const { checkSessionAndGetUser, logActivity } = require("../lib/auth");
+} = require("../../services/helpers");
+const { checkSessionAndGetUser, logActivity } = require("../../services/auth");
 
 async function submit(data, isUpdate = false, clientData) {
   try {

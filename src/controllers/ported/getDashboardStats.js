@@ -1,13 +1,13 @@
-const sheets = require("../lib/sheetsClient");
-const { SETTINGS } = require("../lib/settings");
-const { isRowEmpty, getActualLastRow } = require("../lib/helpers");
-const { checkSessionAndGetUser } = require("../lib/auth");
+const sheets = require("../../models/sheetsClient");
+const { SETTINGS } = require("../../services/settings");
+const { isRowEmpty, getActualLastRow } = require("../../services/helpers");
+const { checkSessionAndGetUser } = require("../../services/auth");
 const {
   normalizeRegionCode,
   isAmisProgramRegion,
   createAmisRegionCounter,
   createAmisSessionStatsByRegion,
-} = require("../lib/amisRegions");
+} = require("../../services/amisRegions");
 
 function getEmptyStats() {
   const emptySessionStats = { all: { present: 0, absent: 0, exempted: 0, totalMarked: 0 } };

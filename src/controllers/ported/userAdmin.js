@@ -1,13 +1,13 @@
-const sheets = require("../lib/sheetsClient");
-const { hashPassword } = require("../lib/crypto");
-const { SETTINGS } = require("../lib/settings");
-const { formatDate } = require("../lib/helpers");
+const sheets = require("../../models/sheetsClient");
+const { hashPassword } = require("../../services/crypto");
+const { SETTINGS } = require("../../services/settings");
+const { formatDate } = require("../../services/helpers");
 const {
   initializeUsersSheet,
   checkSessionAndGetUser,
   logActivity,
   getAccountStatus,
-} = require("../lib/auth");
+} = require("../../services/auth");
 
 // toggleUserStatus — original Code.gs version takes no session check at
 // all (an existing gap, not something this port introduced). Kept as-is.

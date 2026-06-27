@@ -1,8 +1,8 @@
-const sheets = require("../lib/sheetsClient");
-const { SETTINGS } = require("../lib/settings");
-const { isRowEmpty, getActualLastRow, formatDate } = require("../lib/helpers");
-const { checkSessionAndGetUser, initializeActivityLogSheet, logActivity } = require("../lib/auth");
-const { normalizeRegionCode, isAmisProgramRegion } = require("../lib/amisRegions");
+const sheets = require("../../models/sheetsClient");
+const { SETTINGS } = require("../../services/settings");
+const { isRowEmpty, getActualLastRow, formatDate } = require("../../services/helpers");
+const { checkSessionAndGetUser, initializeActivityLogSheet, logActivity } = require("../../services/auth");
+const { normalizeRegionCode, isAmisProgramRegion } = require("../../services/amisRegions");
 
 // Note: matches the original exactly — getRegionsList has no session
 // check in Code.gs either.

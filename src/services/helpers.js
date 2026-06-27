@@ -1,4 +1,4 @@
-const sheets = require("./sheetsClient");
+const sheets = require("../models/sheetsClient");
 const { SETTINGS } = require("./settings");
 
 // ── Direct ports, unchanged logic ──────────────────────────────────

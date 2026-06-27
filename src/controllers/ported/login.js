@@ -1,12 +1,12 @@
-const sheets = require("../lib/sheetsClient");
-const { hashPassword } = require("../lib/crypto");
+const sheets = require("../../models/sheetsClient");
+const { hashPassword } = require("../../services/crypto");
 const {
   initializeUsersSheet,
   generateSessionToken,
   logActivity,
   isAccountLockedOut,
   updateFailedLoginAttempts,
-} = require("../lib/auth");
+} = require("../../services/auth");
 
 async function login(data) {
   try {

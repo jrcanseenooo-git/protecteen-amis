@@ -1,7 +1,7 @@
-const sheets = require("../lib/sheetsClient");
-const { SETTINGS } = require("../lib/settings");
-const { getActualLastRow, sanitizeInput } = require("../lib/helpers");
-const { checkSessionAndGetUser, logActivity } = require("../lib/auth");
+const sheets = require("../../models/sheetsClient");
+const { SETTINGS } = require("../../services/settings");
+const { getActualLastRow, sanitizeInput } = require("../../services/helpers");
+const { checkSessionAndGetUser, logActivity } = require("../../services/auth");
 
 const INFO_HEADERS = [
   "ID Number", "Full Name", "Address", "Education", "Education Level Detail",

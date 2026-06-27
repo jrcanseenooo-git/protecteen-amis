@@ -1,6 +1,6 @@
-const sheets = require("../lib/sheetsClient");
-const { SETTINGS } = require("../lib/settings");
-const { checkSessionAndGetUser } = require("../lib/auth");
+const sheets = require("../../models/sheetsClient");
+const { SETTINGS } = require("../../services/settings");
+const { checkSessionAndGetUser } = require("../../services/auth");
 
 const HC_HEADERS = [
   "ID Number", "Name", "Region",
