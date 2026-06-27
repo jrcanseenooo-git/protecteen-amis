@@ -3389,9 +3389,10 @@
                       </div>
 
                       <!-- ── Loading ─── -->
-                      <!-- Quarter Comparison -->
-                      <div class="amvat-compare-panel mb-4">
-                        <div class="amvat-compare-toolbar">
+                      <!-- Quarter Comparison — collapsed by default so it reads as an
+                           optional tool, not part of the records table below it -->
+                      <div class="amvat-compare-panel mb-4" :class="{ 'amvat-compare-panel--open': amvatCompareExpanded }">
+                        <div class="amvat-compare-toolbar" @click="amvatCompareExpanded = !amvatCompareExpanded">
                           <div>
                             <div class="amvat-compare-title">
                               <v-icon size="18" color="#7257b3">mdi-chart-line-variant</v-icon>
@@ -3402,7 +3403,7 @@
                             </div>
                           </div>
 
-                          <div class="amvat-compare-controls">
+                          <div class="amvat-compare-controls" v-if="amvatCompareExpanded" @click.stop>
                             <v-select v-model="amvatCompareMode" :items="[
                               { title: 'All visible beneficiaries', value: 'all' },
                               { title: 'Selected beneficiary', value: 'selected' }
@@ -3428,79 +3429,95 @@
                               density="compact" hide-details style="min-width:150px;">
                             </v-select>
                           </div>
+
+                          <v-btn icon variant="text" size="small" density="comfortable"
+                            @click.stop="amvatCompareExpanded = !amvatCompareExpanded"
+                            :aria-label="amvatCompareExpanded ? 'Collapse comparison tool' : 'Expand comparison tool'">
+                            <v-icon color="#7257b3">{{ amvatCompareExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                          </v-btn>
                         </div>
 
-                        <div v-if="amvatComparisonRows.length === 0" class="amvat-compare-empty">
-                          <v-icon size="22" color="#a78bfa">mdi-information-outline</v-icon>
-                          No matching beneficiaries have scores in both selected quarters.
+                        <div v-show="amvatCompareExpanded" class="amvat-compare-body">
+                          <div v-if="amvatComparisonRows.length === 0" class="amvat-compare-empty">
+                            <v-icon size="22" color="#a78bfa">mdi-information-outline</v-icon>
+                            No matching beneficiaries have scores in both selected quarters.
+                          </div>
+
+                          <template v-else>
+                            <div class="amvat-compare-summary">
+                              <div class="amvat-compare-metric">
+                                <span>Compared</span>
+                                <strong>{{ amvatComparisonSummary.count }}</strong>
+                              </div>
+                              <div class="amvat-compare-metric">
+                                <span>{{ amvatCompareQuarterLabel(amvatCompareBaseQuarter) }}</span>
+                                <strong>{{ formatAmvatScore(amvatComparisonSummary.baseAvg) }}</strong>
+                              </div>
+                              <div class="amvat-compare-metric">
+                                <span>{{ amvatCompareQuarterLabel(amvatCompareTargetQuarter) }}</span>
+                                <strong>{{ formatAmvatScore(amvatComparisonSummary.targetAvg) }}</strong>
+                              </div>
+                              <div class="amvat-compare-metric">
+                                <span>Avg Change</span>
+                                <strong :style="{color: amvatDeltaColor(amvatComparisonSummary.deltaAvg)}">
+                                  {{ formatAmvatDelta(amvatComparisonSummary.deltaAvg) }}
+                                </strong>
+                              </div>
+                              <div class="amvat-compare-metric good">
+                                <span>Improved</span>
+                                <strong>{{ amvatComparisonSummary.improved }}</strong>
+                              </div>
+                              <div class="amvat-compare-metric bad">
+                                <span>Declined</span>
+                                <strong>{{ amvatComparisonSummary.declined }}</strong>
+                              </div>
+                            </div>
+
+                            <div class="amvat-compare-domains">
+                              <div v-for="domain in amvatComparisonDomains" :key="domain.key" class="amvat-compare-domain"
+                                :style="{'--domain-color': domain.color}">
+                                <span>{{ domain.label }}</span>
+                                <strong :style="{color: amvatDeltaColor(domain.delta)}">
+                                  {{ formatAmvatDelta(domain.delta) }}
+                                </strong>
+                              </div>
+                            </div>
+
+                            <div class="amvat-compare-table">
+                              <table>
+                                <thead>
+                                  <tr>
+                                    <th>Beneficiary</th>
+                                    <th>{{ amvatCompareQuarterLabel(amvatCompareBaseQuarter) }}</th>
+                                    <th>{{ amvatCompareQuarterLabel(amvatCompareTargetQuarter) }}</th>
+                                    <th>Change</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr v-for="row in amvatComparisonRows.slice(0, 6)" :key="row.key">
+                                    <td>
+                                      <div class="amvat-compare-person">{{ row.name }}</div>
+                                      <div class="amvat-compare-address">{{ row.idNumber || row.address }}</div>
+                                    </td>
+                                    <td>{{ formatAmvatScore(row.baseScore) }}</td>
+                                    <td>{{ formatAmvatScore(row.targetScore) }}</td>
+                                    <td :style="{color: amvatDeltaColor(row.delta), fontWeight: 800}">
+                                      {{ formatAmvatDelta(row.delta) }}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </template>
                         </div>
+                      </div>
 
-                        <template v-else>
-                          <div class="amvat-compare-summary">
-                            <div class="amvat-compare-metric">
-                              <span>Compared</span>
-                              <strong>{{ amvatComparisonSummary.count }}</strong>
-                            </div>
-                            <div class="amvat-compare-metric">
-                              <span>{{ amvatCompareQuarterLabel(amvatCompareBaseQuarter) }}</span>
-                              <strong>{{ formatAmvatScore(amvatComparisonSummary.baseAvg) }}</strong>
-                            </div>
-                            <div class="amvat-compare-metric">
-                              <span>{{ amvatCompareQuarterLabel(amvatCompareTargetQuarter) }}</span>
-                              <strong>{{ formatAmvatScore(amvatComparisonSummary.targetAvg) }}</strong>
-                            </div>
-                            <div class="amvat-compare-metric">
-                              <span>Avg Change</span>
-                              <strong :style="{color: amvatDeltaColor(amvatComparisonSummary.deltaAvg)}">
-                                {{ formatAmvatDelta(amvatComparisonSummary.deltaAvg) }}
-                              </strong>
-                            </div>
-                            <div class="amvat-compare-metric good">
-                              <span>Improved</span>
-                              <strong>{{ amvatComparisonSummary.improved }}</strong>
-                            </div>
-                            <div class="amvat-compare-metric bad">
-                              <span>Declined</span>
-                              <strong>{{ amvatComparisonSummary.declined }}</strong>
-                            </div>
-                          </div>
-
-                          <div class="amvat-compare-domains">
-                            <div v-for="domain in amvatComparisonDomains" :key="domain.key" class="amvat-compare-domain"
-                              :style="{'--domain-color': domain.color}">
-                              <span>{{ domain.label }}</span>
-                              <strong :style="{color: amvatDeltaColor(domain.delta)}">
-                                {{ formatAmvatDelta(domain.delta) }}
-                              </strong>
-                            </div>
-                          </div>
-
-                          <div class="amvat-compare-table">
-                            <table>
-                              <thead>
-                                <tr>
-                                  <th>Beneficiary</th>
-                                  <th>{{ amvatCompareQuarterLabel(amvatCompareBaseQuarter) }}</th>
-                                  <th>{{ amvatCompareQuarterLabel(amvatCompareTargetQuarter) }}</th>
-                                  <th>Change</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr v-for="row in amvatComparisonRows.slice(0, 6)" :key="row.key">
-                                  <td>
-                                    <div class="amvat-compare-person">{{ row.name }}</div>
-                                    <div class="amvat-compare-address">{{ row.idNumber || row.address }}</div>
-                                  </td>
-                                  <td>{{ formatAmvatScore(row.baseScore) }}</td>
-                                  <td>{{ formatAmvatScore(row.targetScore) }}</td>
-                                  <td :style="{color: amvatDeltaColor(row.delta), fontWeight: 800}">
-                                    {{ formatAmvatDelta(row.delta) }}
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        </template>
+                      <!-- ── Records section label — gives the table below a clear,
+                           separate start instead of flowing straight on from the
+                           comparison tool above it ─── -->
+                      <div class="amvat-records-divider">
+                        <v-icon size="16" color="#a78bfa">mdi-table</v-icon>
+                        <span>All Assessment Records</span>
                       </div>
 
                       <div v-if="loadingAmvatRecords">
