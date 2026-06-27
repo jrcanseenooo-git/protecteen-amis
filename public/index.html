@@ -3392,7 +3392,7 @@
                       <!-- Quarter Comparison — collapsed by default so it reads as an
                            optional tool, not part of the records table below it -->
                       <div class="amvat-compare-panel mb-4" :class="{ 'amvat-compare-panel--open': amvatCompareExpanded }">
-                        <div class="amvat-compare-toolbar" @click="amvatCompareExpanded = true">
+                        <div class="amvat-compare-toolbar" @click="amvatCompareExpanded = !amvatCompareExpanded">
                           <div>
                             <div class="amvat-compare-title">
                               <v-icon size="18" color="#7257b3">mdi-chart-line-variant</v-icon>
@@ -3431,7 +3431,7 @@
                           </div>
 
                           <v-btn icon variant="text" size="small" density="comfortable"
-                            @click.stop="amvatCompareExpanded = true"
+                            @click.stop="amvatCompareExpanded = !amvatCompareExpanded"
                             :aria-label="amvatCompareExpanded ? 'Comparison expanded' : 'Expand comparison tool'">
                             <v-icon color="#7257b3">{{ amvatCompareExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
                           </v-btn>
@@ -3515,13 +3515,13 @@
                       <!-- ── Records accordion — mutually exclusive with the comparison
                            panel above: exactly one of the two is ever expanded ─── -->
                       <div class="amvat-records-panel" :class="{ 'amvat-records-panel--open': !amvatCompareExpanded }">
-                        <div class="amvat-records-header" @click="amvatCompareExpanded = false">
+                        <div class="amvat-records-header" @click="amvatCompareExpanded = !amvatCompareExpanded">
                           <div class="amvat-records-header-title">
                             <v-icon size="18" color="#7257b3">mdi-table</v-icon>
                             All Assessment Records
                           </div>
                           <v-btn icon variant="text" size="small" density="comfortable"
-                            @click.stop="amvatCompareExpanded = false"
+                            @click.stop="amvatCompareExpanded = !amvatCompareExpanded"
                             :aria-label="!amvatCompareExpanded ? 'Records expanded' : 'Expand records table'">
                             <v-icon color="#7257b3">{{ !amvatCompareExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
                           </v-btn>
