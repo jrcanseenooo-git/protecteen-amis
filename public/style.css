@@ -1800,17 +1800,44 @@
     }
   }
 
-  .amvat-records-divider {
+  .amvat-records-panel {
+    background: #fff;
+    border: 1.5px solid #ede8ff;
+    border-radius: 14px;
+    box-shadow: 0 2px 14px rgba(109, 40, 217, 0.05);
+    overflow: hidden;
+  }
+
+  .amvat-records-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: #8b7bb8;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    padding-left: 2px;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+  }
+
+  .amvat-records-header:hover {
+    background: rgba(114, 87, 179, 0.05);
+  }
+
+  .amvat-records-panel--open .amvat-records-header {
+    border-bottom: 1.5px solid #ede8ff;
+  }
+
+  .amvat-records-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1e1b4b;
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .amvat-records-body {
+    padding: 16px;
   }
 
   .amvat-tbl-wrap {
