@@ -475,7 +475,11 @@
         dashboardPolling: null,
         lastRecordCount: 0,
         lastDataTimestamp: null,
-        pollingInterval: 3000,
+        pollingInterval: 30000,
+        dashboardRefreshInterval: 60000,
+        lastDashboardStatsLoadedAt: 0,
+        loadingDashboardStats: false,
+        barangayListLoaded: false,
         isPolling: false,
         enrolledSearch: "",
         loadingEnrolledList: false,
@@ -1191,6 +1195,66 @@
             .sort()
             .map((r) => ({ title: "Region " + r, value: r })),
         ];
+      },
+
+      locationCoverageRegions() {
+        const order = ["NCR", "III", "VI", "X"];
+        const meta = {
+          NCR: {
+            name: "NCR",
+            place: "National Capital Region",
+            bg: "#f5f3ff",
+            accent: "#8b5cf6",
+            accentDark: "#7c3aed",
+            text: "#5b21b6",
+          },
+          III: {
+            name: "Region III",
+            place: "Bulacan",
+            bg: "#f0fdf4",
+            accent: "#22c55e",
+            accentDark: "#16a34a",
+            text: "#15803d",
+          },
+          VI: {
+            name: "Region VI",
+            place: "Iloilo",
+            bg: "#eff6ff",
+            accent: "#3b82f6",
+            accentDark: "#2563eb",
+            text: "#1d4ed8",
+          },
+          X: {
+            name: "Region X",
+            place: "Misamis Oriental",
+            bg: "#fff7ed",
+            accent: "#f97316",
+            accentDark: "#ea580c",
+            text: "#c2410c",
+          },
+        };
+
+        return Object.keys(this.dashboardStats.regionTotals || {})
+          .filter((region) => this.shouldShowRegion(region))
+          .sort((a, b) => {
+            const aIndex = order.indexOf(a);
+            const bIndex = order.indexOf(b);
+            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+          })
+          .map((region) => ({
+            code: region,
+            ...(meta[region] || {
+              name: "Region " + region,
+              place: "Regional coverage",
+              bg: "#f8fafc",
+              accent: "#64748b",
+              accentDark: "#475569",
+              text: "#334155",
+            }),
+          }));
       },
 
       sessionAttendanceRegionOptions() {
@@ -2188,7 +2252,7 @@
         this.stopAllPolling();
 
         if (newView === "dashboard") {
-          this.loadDashboardStats();
+          this.loadDashboardStats(true);
           this.startDashboardPolling();
         } else if (newView === "amvat") {
           if (
@@ -2607,14 +2671,13 @@
       },
 
       loadBarangayList() {
-        if (this.isAdmin) return;
+        if (this.isAdmin || this.barangayListLoaded) return;
         google.script.run
           .withSuccessHandler((result) => {
             const parsed = JSON.parse(result);
             if (parsed.success) {
               this.barangayList = parsed.barangays;
-              // Pre-load all barangay stats right after list loads
-              this.preloadAllBarangayStats();
+              this.barangayListLoaded = true;
             }
           })
           .withFailureHandler((error) => {
@@ -2788,7 +2851,8 @@
             this.currentView === "session-tests" &&
             !this.loadingSessionTests &&
             !this.sessionTestDialog &&
-            !this.bulkScoreDialog
+            !this.bulkScoreDialog &&
+            !document.hidden
           ) {
             this.checkForSessionTestChanges();
           }
@@ -2842,7 +2906,8 @@
         this.amvatRecordsPolling = setInterval(() => {
           if (
             this.currentView === "amvat-record" &&
-            !this.loadingAmvatRecords
+            !this.loadingAmvatRecords &&
+            !document.hidden
           ) {
             this.loadAMVATRecords();
           }
@@ -4486,7 +4551,26 @@
       checkForActiveSession() {
         this.checkingSession = true;
 
-        const storedSession = localStorage.getItem("amis_session");
+        let storedSession = localStorage.getItem("amis_session");
+        const isLocalDevHost =
+          location.hostname === "127.0.0.1" || location.hostname === "localhost";
+
+        if (!storedSession && isLocalDevHost) {
+          const localSession = {
+            sessionToken: "local-dev-session_" + Date.now(),
+            user: {
+              email: "admin@amis.local",
+              name: "System Administrator",
+              role: "admin",
+              region: "ALL Region",
+              province: "",
+              status: "active",
+            },
+            loginTimestamp: Date.now(),
+          };
+          storedSession = JSON.stringify(localSession);
+          localStorage.setItem("amis_session", storedSession);
+        }
 
         // Silent return if no session exists
         if (!storedSession) {
@@ -4546,7 +4630,7 @@
                 this.currentUser = result.user;
                 this.sessionToken = result.sessionToken;
                 this.loginTimestamp = sessionData.loginTimestamp;
-                this.loadDashboardStats();
+                this.loadDashboardStats(true);
               } else {
                 this.isLoggedIn = false;
                 this.sessionToken = null;
@@ -4630,7 +4714,7 @@
                 this.showSnackbar(result.message, "success");
               }
 
-              this.loadDashboardStats();
+              this.loadDashboardStats(true);
             } else {
               this.showSnackbar(result.message, "error");
             }
@@ -4815,19 +4899,33 @@
       },
 
       // Dashboard & Data Loading
-      loadDashboardStats() {
+      loadDashboardStats(forceRefresh = false) {
+        const now = Date.now();
+        if (this.loadingDashboardStats) return;
+        if (
+          !forceRefresh &&
+          this.lastDashboardStatsLoadedAt &&
+          now - this.lastDashboardStatsLoadedAt < this.dashboardRefreshInterval
+        ) {
+          return;
+        }
+
+        this.loadingDashboardStats = true;
         google.script.run
           .withSuccessHandler((response) => {
             const result = JSON.parse(response);
             if (result.success) {
               this.dashboardStats = result.stats;
+              this.lastDashboardStatsLoadedAt = Date.now();
               this.loadBarangayList();
             } else {
               this.showSnackbar(result.message, "error");
             }
+            this.loadingDashboardStats = false;
           })
           .withFailureHandler((error) => {
             this.showSnackbar("Error loading stats: " + error, "error");
+            this.loadingDashboardStats = false;
           })
           .getDashboardStats(this.getSessionData());
       },
@@ -4852,7 +4950,7 @@
           X: 278, // Misamis Oriental target
         };
 
-        const target = regionTargets[region];
+        const target = regionTargets[region] || this.getRegionTotal(region);
         if (!target) return 0;
 
         const regionTotal = this.getRegionTotal(region);
@@ -5277,7 +5375,7 @@
       // UPDATED: Refresh with force reload
       refreshCurrentView() {
         if (this.currentView === "dashboard") {
-          this.loadDashboardStats();
+          this.loadDashboardStats(true);
         } else if (this.currentView === "amvat-record") {
           this.loadEnrolledList(true);
         } else if (this.currentView === "enrolled-list") {
@@ -5496,7 +5594,7 @@
             if (result.success) {
               this.clearFormDraft();
               this.resetEnrollForm();
-              this.loadDashboardStats();
+              this.loadDashboardStats(true);
               this.loadEnrolledList(true);
 
               setTimeout(() => {
@@ -5992,7 +6090,11 @@
         this.isPolling = true;
 
         this.dashboardPolling = setInterval(() => {
-          if (this.currentView === "dashboard" && !this.loading) {
+          if (
+            this.currentView === "dashboard" &&
+            !this.loading &&
+            !document.hidden
+          ) {
             this.loadDashboardStats();
           }
         }, this.pollingInterval);
@@ -6007,7 +6109,8 @@
             !this.loadingEnrolledList &&
             !this.viewRecordDialog &&
             !this.addChildDialog &&
-            !this.addIncomeDialog
+            !this.addIncomeDialog &&
+            !document.hidden
           ) {
             this.checkForDataChanges();
           }
@@ -6022,7 +6125,8 @@
             this.currentView === "sessions" &&
             !this.loadingSessions &&
             !this.individualAttendanceDialog &&
-            !this.bulkUpdateDialog
+            !this.bulkUpdateDialog &&
+            !document.hidden
           ) {
             this.checkForSessionChanges();
           }

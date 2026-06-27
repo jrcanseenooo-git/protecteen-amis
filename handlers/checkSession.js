@@ -14,6 +14,18 @@ async function checkSession(clientData) {
       }
     }
 
+    if (
+      process.env.FORCE_LOCAL_BACKEND === "1" &&
+      clientData.user &&
+      clientData.user.email
+    ) {
+      return JSON.stringify({
+        success: true,
+        user: clientData.user,
+        sessionToken: clientData.sessionToken || "local-dev-session",
+      });
+    }
+
     if (!clientData.sessionToken || !clientData.user || !clientData.loginTimestamp) {
       return JSON.stringify({ success: false, message: "Incomplete session data", silent: true });
     }

@@ -3,6 +3,8 @@
 
 <head>
   <base target="_top">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.css" rel="stylesheet">
@@ -680,59 +682,25 @@
 
                   <div style="padding:14px 16px;">
 
-                    <!-- Region III -->
-                    <div v-if="shouldShowRegion('III')" class="db-region-row" style="background:#f0fdf4;">
-                      <div class="db-region-dot" style="background:#22c55e;"></div>
-                      <div>
-                        <div class="db-region-name" style="color:#15803d;">Region III</div>
-                        <div class="db-region-sub" style="color:#15803d;">Bulacan</div>
-                      </div>
-                      <div style="margin-left:auto;text-align:right;">
-                        <div class="db-region-count" style="color:#15803d;">{{ getRegionTotal('III') }}</div>
-                        <div class="db-region-pct" style="color:#16a34a;">{{ Math.round(getRegionPercentage('III')) }}%
+                    <template v-for="region in locationCoverageRegions" :key="region.code">
+                      <div class="db-region-row" :style="{background: region.bg}">
+                        <div class="db-region-dot" :style="{background: region.accent}"></div>
+                        <div>
+                          <div class="db-region-name" :style="{color: region.text}">{{ region.name }}</div>
+                          <div class="db-region-sub" :style="{color: region.text}">{{ region.place }}</div>
+                        </div>
+                        <div style="margin-left:auto;text-align:right;">
+                          <div class="db-region-count" :style="{color: region.text}">{{ getRegionTotal(region.code) }}</div>
+                          <div class="db-region-pct" :style="{color: region.accentDark}">
+                            {{ Math.round(getRegionPercentage(region.code)) }}%
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div v-if="shouldShowRegion('III')" class="db-prog-track" style="margin-bottom:12px;">
-                      <div class="db-prog-fill" :style="{width:getRegionPercentage('III')+'%',background:'#22c55e'}">
-                      </div>
-                    </div>
-
-                    <!-- Region VI -->
-                    <div v-if="shouldShowRegion('VI')" class="db-region-row" style="background:#eff6ff;">
-                      <div class="db-region-dot" style="background:#3b82f6;"></div>
-                      <div>
-                        <div class="db-region-name" style="color:#1d4ed8;">Region VI</div>
-                        <div class="db-region-sub" style="color:#1d4ed8;">Iloilo</div>
-                      </div>
-                      <div style="margin-left:auto;text-align:right;">
-                        <div class="db-region-count" style="color:#1d4ed8;">{{ getRegionTotal('VI') }}</div>
-                        <div class="db-region-pct" style="color:#2563eb;">{{ Math.round(getRegionPercentage('VI')) }}%
+                      <div class="db-prog-track" style="margin-bottom:12px;">
+                        <div class="db-prog-fill" :style="{width:getRegionPercentage(region.code)+'%',background:region.accent}">
                         </div>
                       </div>
-                    </div>
-                    <div v-if="shouldShowRegion('VI')" class="db-prog-track" style="margin-bottom:12px;">
-                      <div class="db-prog-fill" :style="{width:getRegionPercentage('VI')+'%',background:'#3b82f6'}">
-                      </div>
-                    </div>
-
-                    <!-- Region X -->
-                    <div v-if="shouldShowRegion('X')" class="db-region-row" style="background:#fff7ed;">
-                      <div class="db-region-dot" style="background:#f97316;"></div>
-                      <div>
-                        <div class="db-region-name" style="color:#c2410c;">Region X</div>
-                        <div class="db-region-sub" style="color:#c2410c;">Misamis Oriental</div>
-                      </div>
-                      <div style="margin-left:auto;text-align:right;">
-                        <div class="db-region-count" style="color:#c2410c;">{{ getRegionTotal('X') }}</div>
-                        <div class="db-region-pct" style="color:#ea580c;">{{ Math.round(getRegionPercentage('X')) }}%
-                        </div>
-                      </div>
-                    </div>
-                    <div v-if="shouldShowRegion('X')" class="db-prog-track">
-                      <div class="db-prog-fill" :style="{width:getRegionPercentage('X')+'%',background:'#f97316'}">
-                      </div>
-                    </div>
+                    </template>
 
                     <!-- Grand total -->
                     <div class="db-grand">
@@ -7405,8 +7373,8 @@
   <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 
-  <script src="/google-script-shim.js"></script>
-  <script src="/app.js"></script>
+  <script src="/google-script-shim.js?v=local-rpc-trace-20260627"></script>
+  <script src="/app.js?v=local-ncr-20260627b"></script>
 </body>
 
 </html>

@@ -2,6 +2,12 @@ const sheets = require("../lib/sheetsClient");
 const { SETTINGS } = require("../lib/settings");
 const { isRowEmpty, getActualLastRow } = require("../lib/helpers");
 const { checkSessionAndGetUser } = require("../lib/auth");
+const {
+  normalizeRegionCode,
+  isAmisProgramRegion,
+  createAmisRegionCounter,
+  createAmisSessionStatsByRegion,
+} = require("../lib/amisRegions");
 
 function getEmptyStats() {
   const emptySessionStats = { all: { present: 0, absent: 0, exempted: 0, totalMarked: 0 } };
@@ -19,9 +25,9 @@ function getEmptyStats() {
     genderDistribution: { Male: 0, Female: 0 },
     monthlyTrend: [],
     sessionCompletion: 0,
-    regionTotals: { III: 0, VI: 0, X: 0 },
+    regionTotals: createAmisRegionCounter(),
     sessionStats: emptySessionStats,
-    sessionStatsByRegion: { III: {}, VI: {}, X: {} },
+    sessionStatsByRegion: createAmisSessionStatsByRegion(),
     overallAttendanceSummary: { present: 0, absent: 0, exempted: 0, totalMarked: 0 },
     lastUpdated: new Date().toISOString(),
   };
@@ -46,7 +52,11 @@ async function calculateSessionCompletion(ss, enrolledData, colIndices) {
     for (let i = 0; i < attData.length; i++) {
       const idNumber = attData[i][0];
       if (!idNumber) continue;
-      const isInFiltered = enrolledData.some((row) => row[colIndices.id] === idNumber);
+      const isInFiltered = enrolledData.some(
+        (row) =>
+          row[colIndices.id] === idNumber &&
+          isAmisProgramRegion(row[colIndices.region]),
+      );
       if (!isInFiltered) continue;
 
       for (let m = 1; m <= 24; m++) {
@@ -82,9 +92,11 @@ async function calculateDetailedSessionStats(ss, enrolledData, colIndices, isAdm
     for (let i = 1; i < enrolledData.length; i++) {
       const row = enrolledData[i];
       if (!row[colIndices.id] || isRowEmpty(row)) continue;
+      const rowRegionRaw = row[colIndices.region];
+      if (!isAmisProgramRegion(rowRegionRaw)) continue;
       if (!isAdmin && userRegion && userRegion !== "ALL") {
-        const rowRegion = (row[colIndices.region] || "").toString().trim().toLowerCase();
-        if (rowRegion !== userRegion.toString().trim().toLowerCase()) continue;
+        const rowRegion = normalizeRegionCode(rowRegionRaw);
+        if (rowRegion !== normalizeRegionCode(userRegion)) continue;
       }
       filteredIds.add(String(row[colIndices.id]));
     }
@@ -118,14 +130,7 @@ async function calculateDetailedSessionStats(ss, enrolledData, colIndices, isAdm
 }
 
 async function calculateSessionStatsByRegion(ss, enrolledData, colIndices) {
-  const regionsList = ["III", "VI", "X"];
-  const result = {};
-  regionsList.forEach((region) => {
-    result[region] = { all: { present: 0, absent: 0, exempted: 0, totalMarked: 0 } };
-    for (let i = 1; i <= 24; i++) {
-      result[region][`M${i}`] = { present: 0, absent: 0, exempted: 0, totalMarked: 0 };
-    }
-  });
+  const result = createAmisSessionStatsByRegion();
 
   try {
     const attData = await getAttendanceData(ss);
@@ -135,7 +140,8 @@ async function calculateSessionStatsByRegion(ss, enrolledData, colIndices) {
     for (let i = 1; i < enrolledData.length; i++) {
       const row = enrolledData[i];
       if (!row[colIndices.id] || isRowEmpty(row)) continue;
-      const region = colIndices.region !== -1 ? (row[colIndices.region] || "").toString().trim() : "";
+      const region = colIndices.region !== -1 ? normalizeRegionCode(row[colIndices.region]) : "";
+      if (!isAmisProgramRegion(region)) continue;
       idRegionMap[row[colIndices.id]] = region;
     }
 
@@ -178,7 +184,9 @@ async function calculateOverallAttendanceSummary(ss, enrolledData, colIndices, f
     for (let i = 1; i < enrolledData.length; i++) {
       const row = enrolledData[i];
       if (!row[colIndices.id] || isRowEmpty(row)) continue;
-      if (filterRegion && row[colIndices.region] !== filterRegion) continue;
+      const rowRegion = normalizeRegionCode(row[colIndices.region]);
+      if (!isAmisProgramRegion(rowRegion)) continue;
+      if (filterRegion && rowRegion !== normalizeRegionCode(filterRegion)) continue;
       enrolledIds.add(String(row[colIndices.id]));
     }
 
@@ -271,7 +279,7 @@ async function getDashboardStats(clientData) {
       genderDistribution: { Male: 0, Female: 0 },
       monthlyTrend: [],
       sessionCompletion: 0,
-      regionTotals: { III: 0, VI: 0, X: 0 },
+      regionTotals: createAmisRegionCounter(),
       sessionStats: null,
       lastUpdated: new Date().toISOString(),
     };
@@ -281,10 +289,11 @@ async function getDashboardStats(clientData) {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       if (!row[colIndices.id] || isRowEmpty(row)) continue;
+      const rowRegion = colIndices.region !== -1 ? normalizeRegionCode(row[colIndices.region]) : "";
+      if (!isAmisProgramRegion(rowRegion)) continue;
 
       if (!isAdmin && userRegion !== "ALL" && colIndices.region !== -1) {
-        const rowRegion = (row[colIndices.region] || "").toLowerCase();
-        if (rowRegion !== userRegion.toLowerCase()) continue;
+        if (rowRegion !== normalizeRegionCode(userRegion)) continue;
       }
 
       stats.totalEnrolled++;
@@ -299,8 +308,8 @@ async function getDashboardStats(clientData) {
           stats.ageGroups[ageToday] = (stats.ageGroups[ageToday] || 0) + 1;
         }
 
-        if (colIndices.region !== -1 && row[colIndices.region]) {
-          const region = row[colIndices.region].toString().trim();
+        if (rowRegion) {
+          const region = rowRegion;
           if (!stats.ageGroupsByRegion[region]) stats.ageGroupsByRegion[region] = {};
           stats.ageGroupsByRegion[region][ageToday] = (stats.ageGroupsByRegion[region][ageToday] || 0) + 1;
         }
@@ -314,8 +323,8 @@ async function getDashboardStats(clientData) {
             stats.ageGroupsAtRegistration[ageAtReg] = (stats.ageGroupsAtRegistration[ageAtReg] || 0) + 1;
           }
 
-          if (colIndices.region !== -1 && row[colIndices.region]) {
-            const region = row[colIndices.region].toString().trim();
+          if (rowRegion) {
+            const region = rowRegion;
             if (!stats.ageGroupsByRegionAtRegistration[region]) stats.ageGroupsByRegionAtRegistration[region] = {};
             stats.ageGroupsByRegionAtRegistration[region][ageAtReg] =
               (stats.ageGroupsByRegionAtRegistration[region][ageAtReg] || 0) + 1;
@@ -332,10 +341,7 @@ async function getDashboardStats(clientData) {
         stats.locations[location] = (stats.locations[location] || 0) + 1;
       }
 
-      if (colIndices.region !== -1 && row[colIndices.region]) {
-        const region = row[colIndices.region].toString().trim();
-        if (stats.regionTotals[region] !== undefined) stats.regionTotals[region]++;
-      }
+      if (stats.regionTotals[rowRegion] !== undefined) stats.regionTotals[rowRegion]++;
 
       if (colIndices.id !== -1 && row[colIndices.id]) {
         const id = row[colIndices.id].toString();

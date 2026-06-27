@@ -2,6 +2,7 @@ const sheets = require("../lib/sheetsClient");
 const { SETTINGS } = require("../lib/settings");
 const { isRowEmpty, getActualLastRow, formatDate } = require("../lib/helpers");
 const { checkSessionAndGetUser, initializeActivityLogSheet, logActivity } = require("../lib/auth");
+const { normalizeRegionCode, isAmisProgramRegion } = require("../lib/amisRegions");
 
 // Note: matches the original exactly — getRegionsList has no session
 // check in Code.gs either.
@@ -9,6 +10,12 @@ async function getRegionsList() {
   try {
     const ss = sheets.getActive();
     const regions = new Set();
+    const addRegion = (value) => {
+      const region = normalizeRegionCode(value);
+      if (isAmisProgramRegion(region)) {
+        regions.add(region);
+      }
+    };
 
     for (const sheetName of [SETTINGS.SHEET_NAME.RESPONSES, SETTINGS.SHEET_NAME.SOURCE]) {
       const exists = await ss.sheetExists(sheetName);
@@ -28,7 +35,19 @@ async function getRegionsList() {
 
       for (let i = 1; i < data.length; i++) {
         if (!isRowEmpty(data[i]) && data[i][regionIndex]) {
-          regions.add(data[i][regionIndex].toString().trim());
+          addRegion(data[i][regionIndex]);
+        }
+      }
+    }
+
+    const locationExists = await ss.sheetExists("LocationDB");
+    if (locationExists) {
+      const locationSheet = ss.getSheetByName("LocationDB");
+      const actualLastRow = await getActualLastRow(locationSheet);
+      if (actualLastRow > 1) {
+        const data = await locationSheet.getRange(2, 1, actualLastRow - 1, 1).getValues();
+        for (let i = 0; i < data.length; i++) {
+          addRegion(data[i][0]);
         }
       }
     }

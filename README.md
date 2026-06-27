@@ -1,4 +1,38 @@
-# AMIS on Vercel — Google Sheet as the database
+# AMIS on Vercel — hybrid Apps Script backend
+
+Recommended production setup for this repo:
+
+- Vercel serves the unchanged AMIS frontend from `public/`.
+- The browser keeps calling `/api/rpc` through `google-script-shim.js`.
+- `/api/rpc` forwards those calls to the existing Apps Script web app
+  when `APPS_SCRIPT_WEB_APP_URL` is set.
+- Apps Script keeps the full backend/business logic and Google Sheets
+  access, so the system design and existing functionality stay intact.
+
+## Recommended hybrid setup
+
+1. Add `appscript-rpc-adapter.gs` to the existing Apps Script backend
+   project.
+2. Deploy the Apps Script project as a Web App.
+3. Copy the Web App URL, which usually looks like:
+   `https://script.google.com/macros/s/.../exec`
+4. Set `APPS_SCRIPT_WEB_APP_URL` in `.env` for local dev and in Vercel
+   Project Settings -> Environment Variables for production.
+5. Run locally with `npm run dev`, then open `http://127.0.0.1:3000`.
+
+Production should keep `FORCE_LOCAL_BACKEND` unset or set to `0`. In
+that mode, `/api/rpc` is a Vercel proxy to Apps Script, so the app gets
+a proper domain while the proven Apps Script backend continues to run
+the business logic.
+
+For local development only, `FORCE_LOCAL_BACKEND=1` runs any already
+ported Node handler first and automatically falls back to Apps Script
+for functions that are not ported. That keeps local testing useful
+without showing users the old "not ported" error.
+
+`APPS_SCRIPT_READ_CACHE_TTL_MS` adds a short cache for read-only
+proxied calls. The default is 15 seconds; set it to `0` if you need to
+disable caching while debugging.
 
 This is the same AMIS frontend (same Vuetify 3 + Vue files, same views,
 same buttons, same business logic) running on Vercel instead of Apps
@@ -90,12 +124,17 @@ pushed already, treat that credential as compromised and rotate it.
 ## Vercel setup
 
 1. Push this folder to a GitHub repo, import it into Vercel.
-2. In Project Settings -> Environment Variables, add the three values
-   from `.env.example` (`SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`,
-   `GOOGLE_PRIVATE_KEY` — paste the private key with its `\n` escapes
-   intact, exactly as it appears in the JSON file).
-3. Deploy. No build command needed — `public/` is served as static
-   files, `api/rpc.js` becomes a serverless function automatically.
+2. In Project Settings -> Environment Variables, add:
+   - `APPS_SCRIPT_WEB_APP_URL`
+   - optional: `APPS_SCRIPT_READ_CACHE_TTL_MS=15000`
+3. Make sure `FORCE_LOCAL_BACKEND` is not set to `1` in Vercel.
+4. Deploy. `public/` is served as static files, and `api/rpc.js`
+   becomes the serverless proxy to Apps Script automatically.
+
+You only need `SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, and
+`GOOGLE_PRIVATE_KEY` if you intentionally choose to continue porting
+backend functions into Node/Vercel. That is not required for the
+recommended hybrid production setup.
 
 ## Known carry-over, flagged on purpose
 
@@ -143,6 +182,11 @@ every displayed date/time would be off by that difference — update
 the `TIMEZONE` constant in `lib/helpers.js` if so.
 
 ## Migration checklist
+
+For the recommended hybrid production setup, pending functions are not
+user-facing blockers: `/api/rpc` proxies them to Apps Script. Porting
+them to Node/Vercel is optional future work, not required for the
+Vercel domain deployment.
 
 **Done:** login, signup, checkSession, logoutSession, toggleUserStatus,
 getAllUsers, unlockAccount, autoUnlockExpiredAccounts, deleteUser,
