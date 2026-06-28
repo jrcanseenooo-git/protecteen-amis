@@ -219,6 +219,8 @@
         amvatCompareTargetQuarter: "Q1-Y1",
         amvatCompareBeneficiaryKey: null,
         amvatCompareExpanded: false,
+        amvatComparePage: 1,
+        amvatComparePageSize: 10,
         sessionFilterSession: "",
         sessionFilterAttStatus: null,
         sessionTestPolling: null,
@@ -1590,6 +1592,15 @@
         };
       },
 
+      // Paginated slice — mirrors paginatedAmvatTableRecords below
+      paginatedAmvatComparisonRows() {
+        const start = (this.amvatComparePage - 1) * this.amvatComparePageSize;
+        return this.amvatComparisonRows.slice(
+          start,
+          start + this.amvatComparePageSize,
+        );
+      },
+
       amvatComparisonDomains() {
         const domains = [
           { key: "empowerment", label: "Empowerment", color: "#7c3aed" },
@@ -2361,27 +2372,37 @@
 
       amvatRecordSearch() {
         this.amvatTblPage = 1;
+        this.amvatComparePage = 1;
         this.ensureAmvatCompareBeneficiary();
       },
       amvatRecordQuarterFilter() {
         this.amvatTblPage = 1;
+        this.amvatComparePage = 1;
         this.ensureAmvatCompareBeneficiary();
       },
       amvatRecordYearFilter() {
         this.amvatTblPage = 1;
+        this.amvatComparePage = 1;
         this.ensureAmvatCompareBeneficiary();
       },
       amvatRecordRegionFilter() {
         this.amvatTblPage = 1;
+        this.amvatComparePage = 1;
         this.ensureAmvatCompareBeneficiary();
       },
       amvatCompareMode() {
+        this.amvatComparePage = 1;
         this.ensureAmvatCompareBeneficiary();
       },
+      amvatCompareBeneficiaryKey() {
+        this.amvatComparePage = 1;
+      },
       amvatCompareBaseQuarter() {
+        this.amvatComparePage = 1;
         this.ensureDifferentAmvatCompareQuarters("base");
       },
       amvatCompareTargetQuarter() {
+        this.amvatComparePage = 1;
         this.ensureDifferentAmvatCompareQuarters("target");
       },
 
