@@ -2,13 +2,14 @@
 <html>
 
 <head>
-  <base target="_top">
+  <meta charset="utf-8">
+  <title>AMIS — Adolescent Mother Information System</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.css" rel="stylesheet">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/style.css">
 </head>
 
@@ -16,7 +17,7 @@
   <!-- Loading Screen -->
   <div id="loadingScreen" class="loading-screen">
     <div class="loading-logo">
-      <img src="https://lh3.googleusercontent.com/d/1UfAZMGbOHw8MrwgZLaOtxqBno_HZpU68" alt="AMIS Logo">
+      <img src="/amis-logo.png" alt="AMIS Logo">
     </div>
     <!-- <div class="loading-title">AMIS</div> -->
     <div class="loading-subtitle">Adolescent Mother Information System</div>
@@ -204,7 +205,7 @@
 
                 <!-- Logo -->
                 <div class="logo-container">
-                  <img src="https://lh3.googleusercontent.com/d/1UfAZMGbOHw8MrwgZLaOtxqBno_HZpU68" alt="AMIS Logo">
+                  <img src="/amis-logo.png" alt="AMIS Logo">
                 </div>
 
                 <!-- Title -->
@@ -293,7 +294,7 @@
           <!-- Profile Header -->
           <div style="background:#7257b3;padding:10px 16px 10px;text-align:center;">
             <div style="width:90px;height:90px;border-radius:50%;overflow:hidden;margin:0 auto 7px;">
-              <img src="https://lh3.googleusercontent.com/d/1UfAZMGbOHw8MrwgZLaOtxqBno_HZpU68" alt="AMIS Logo" style="width:90%;height:90%;object-fit:cover;transform:scale(1.15);">
+              <img src="/amis-logo.png" alt="AMIS Logo" style="width:90%;height:90%;object-fit:cover;transform:scale(1.15);">
             </div>
             <div style="font-size:12px;font-weight:600;color:#fff;margin-bottom:1px;">{{ currentUser.name }}</div>
             <div style="font-size:10px;color:rgba(255,255,255,0.65);margin-bottom:6px;">{{ currentUser.email }}</div>
@@ -342,6 +343,9 @@
                     <v-icon size="16">{{ child.icon }}</v-icon>
                   </template>
                   <v-list-item-title style="font-size:12px;">{{ child.title }}</v-list-item-title>
+                  <template v-if="child.comingSoon" v-slot:append>
+                    <span style="font-size:9px;font-weight:700;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">SOON</span>
+                  </template>
                 </v-list-item>
               </v-list-group>
             </template>
@@ -413,7 +417,7 @@
         </v-chip>
 
         <v-main
-          style="background-image: url('https://lh3.googleusercontent.com/d/12_2tgQIF0__qjDBEqAOPjZxFQKbpq_Jg'); background-size: cover; background-position: center; background-attachment: fixed;">
+          style="background: linear-gradient(160deg, #f3f0fb 0%, #ede9fe 40%, #f5f3ff 100%);">
           <v-container fluid :class="isMobile ? 'pa-3' : 'pa-6'">
 
             <!-- DASHBOARD HTML -->
@@ -5394,7 +5398,7 @@
                               </tr>
                             </thead>
                             <tbody>
-                              <tr v-for="record in filteredJournalRecords" :key="record.idNumber" class="hc-row">
+                              <tr v-for="record in paginatedJournalRecords" :key="record.idNumber" class="hc-row">
                                 <td class="hc-td">
                                   <div class="hc-name">{{ record.name }}</div>
                                   <div class="hc-sub-info"><span class="hc-id-badge">{{ record.idNumber }}</span></div>
@@ -5416,6 +5420,13 @@
                             </tbody>
                           </table>
                         </v-card-text>
+                        <div v-if="filteredJournalRecords.length > journalPageSize" class="amvat-tbl-footer">
+                          <span class="amvat-tbl-footer-info">
+                            Showing {{ (journalPage - 1) * journalPageSize + 1 }}–{{ Math.min(journalPage * journalPageSize, filteredJournalRecords.length) }} of {{ filteredJournalRecords.length }}
+                          </span>
+                          <v-pagination v-model="journalPage" :length="journalPageCount" :total-visible="5" density="compact" color="#7257b3" />
+                          <v-select v-model="journalPageSize" :items="[10,15,25,50]" label="Rows" variant="outlined" density="compact" hide-details style="max-width:85px;" @update:modelValue="journalPage = 1" />
+                        </div>
                       </v-card>
                     </v-card-text>
                   </v-card>
@@ -5453,36 +5464,47 @@
                         <v-icon size="48" color="#c4b5fd">mdi-account-group-outline</v-icon>
                         <div style="font-size:18px;font-weight:700;color:#6b46c1;margin-top:12px;">No beneficiaries found</div>
                       </div>
-                      <div v-else class="amvat-tbl-wrap">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Beneficiary</th>
-                              <th>Location</th>
-                              <th>Contacts on File</th>
-                              <th></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr v-for="rec in filteredContactCircleRecords" :key="rec.idNumber">
-                              <td style="padding:10px 18px;font-weight:600;color:#1e1b4b;">
-                                {{ rec.beneficiaryName }}
-                                <div style="font-size:11px;color:#7c3aed;font-weight:500;">{{ rec.idNumber }}</div>
-                              </td>
-                              <td style="padding:10px 16px;font-size:12px;color:#4b5563;">{{ rec.barangay || rec.region || '—' }}</td>
-                              <td style="padding:10px 16px;">
-                                <span style="font-size:12px;font-weight:700;color:#7257b3;">{{ rec.contactsFilled }} / 8</span>
-                              </td>
-                              <td style="padding:10px 16px;">
-                                <v-btn size="small" variant="tonal" color="deep-purple"
-                                  @click="openContactCircleDialog(rec.idNumber, rec.beneficiaryName)">
-                                  {{ rec.contactsFilled > 0 ? 'Edit' : 'Add' }}
-                                </v-btn>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
+                      <v-card variant="outlined" style="border-radius:14px;overflow:hidden;border-color:#e0d8ff;">
+                        <v-card-text class="pa-0" style="overflow-x:auto;">
+                          <table class="hc-table">
+                            <thead>
+                              <tr>
+                                <th class="hc-th" style="text-align:left;min-width:220px;">Beneficiary</th>
+                                <th class="hc-th" style="text-align:left;min-width:140px;">Location</th>
+                                <th class="hc-th" style="text-align:center;">Contacts on File</th>
+                                <th class="hc-th" style="text-align:center;width:80px;">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="rec in paginatedContactCircleRecords" :key="rec.idNumber" class="hc-row">
+                                <td class="hc-td">
+                                  <div class="hc-name">{{ rec.beneficiaryName }}</div>
+                                  <div class="hc-sub-info"><span class="hc-id-badge">{{ rec.idNumber }}</span></div>
+                                </td>
+                                <td class="hc-td">
+                                  <div style="font-size:12px;font-weight:600;color:#374151;">{{ rec.barangay || rec.region || '—' }}</div>
+                                </td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <span style="font-size:12px;font-weight:700;color:#7257b3;">{{ rec.contactsFilled }} / 8</span>
+                                  <v-progress-linear :model-value="rec.contactsFilled / 8 * 100" color="#7257b3" bg-color="#ede9fe" rounded height="4" style="margin-top:4px;" />
+                                </td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <v-btn size="x-small" variant="tonal" :color="rec.contactsFilled > 0 ? 'primary' : 'deep-purple'"
+                                    :icon="rec.contactsFilled > 0 ? 'mdi-pencil' : 'mdi-plus'"
+                                    @click="openContactCircleDialog(rec.idNumber, rec.beneficiaryName)" />
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </v-card-text>
+                        <div v-if="filteredContactCircleRecords.length > contactCirclePageSize" class="amvat-tbl-footer">
+                          <span class="amvat-tbl-footer-info">
+                            Showing {{ (contactCirclePage - 1) * contactCirclePageSize + 1 }}–{{ Math.min(contactCirclePage * contactCirclePageSize, filteredContactCircleRecords.length) }} of {{ filteredContactCircleRecords.length }}
+                          </span>
+                          <v-pagination v-model="contactCirclePage" :length="contactCirclePageCount" :total-visible="5" density="compact" color="#7257b3" />
+                          <v-select v-model="contactCirclePageSize" :items="[10,15,25,50]" label="Rows" variant="outlined" density="compact" hide-details style="max-width:85px;" @update:modelValue="contactCirclePage = 1" />
+                        </div>
+                      </v-card>
                     </v-card-text>
                   </v-card>
                 </v-col>
@@ -5527,7 +5549,7 @@
                     <v-card-text class="pa-4">
 
                       <!-- Filters Row -->
-                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;margin-bottom:16px;">
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
                         <div style="width:240px;flex-shrink:0;">
                           <v-text-field v-model="healthcareSearch" placeholder="Search name or ID..."
                             prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable />
@@ -6055,29 +6077,41 @@
 
               <!-- Record Exit Dialog -->
               <v-dialog v-model="showExitDialog" max-width="520">
-                <v-card style="border-radius:18px;">
-                  <v-card-title class="pa-4 px-6" style="background:linear-gradient(135deg,#7257b3 0%,#764ba2 100%);color:white;">
-                    Record Beneficiary Exit
-                  </v-card-title>
+                <v-card rounded="xl" style="overflow:hidden;">
+                  <div style="background:linear-gradient(135deg,#7257b3 0%,#764ba2 100%);padding:20px 24px;position:relative;">
+                    <div style="position:absolute;top:0;right:0;width:150px;height:100%;opacity:0.08;background:radial-gradient(circle at 80% 50%, white, transparent);pointer-events:none;"></div>
+                    <div style="display:flex;align-items:center;gap:14px;">
+                      <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <v-icon color="white" size="24">mdi-account-remove-outline</v-icon>
+                      </div>
+                      <div>
+                        <div style="color:white;font-size:17px;font-weight:800;letter-spacing:-0.3px;">Record Beneficiary Exit</div>
+                        <div style="color:rgba(255,255,255,0.75);font-size:12px;">Delistment, voluntary exit, or graduation</div>
+                      </div>
+                    </div>
+                  </div>
                   <v-card-text class="pa-6">
                     <v-select v-model="exitForm.idNumber" :items="exitBeneficiaryOptions" item-title="title"
                       item-value="value" label="Beneficiary" variant="outlined" density="comfortable"
+                      prepend-inner-icon="mdi-account-outline"
                       class="mb-3" @update:modelValue="onExitBeneficiarySelected">
                     </v-select>
                     <v-select v-model="exitForm.exitType" :items="['Delistment', 'Voluntary Exit', 'Graduation']"
-                      label="Exit Type" variant="outlined" density="comfortable" class="mb-3">
+                      label="Exit Type" variant="outlined" density="comfortable"
+                      prepend-inner-icon="mdi-tag-outline"
+                      class="mb-3">
                     </v-select>
                     <v-textarea v-model="exitForm.reason" label="Reason / Notes" variant="outlined" rows="3"
                       placeholder="e.g. Reached target AMVAT level with case manager recommendation; or fraud/misrepresentation finding; or waiver submitted">
                     </v-textarea>
                   </v-card-text>
-                  <v-card-actions class="pa-4 px-6">
-                    <v-spacer></v-spacer>
-                    <v-btn variant="text" @click="showExitDialog = false">Cancel</v-btn>
-                    <v-btn color="deep-purple" variant="flat" :loading="savingExit" @click="submitBeneficiaryExit">
-                      Save
+                  <div style="padding:0 24px 24px;display:flex;gap:12px;">
+                    <v-btn variant="outlined" style="flex:1;border-radius:10px;font-weight:600;color:#6b7280;border-color:#d1d5db;" @click="showExitDialog = false">Cancel</v-btn>
+                    <v-btn color="#7257b3" variant="flat" style="flex:2;border-radius:10px;font-weight:800;font-size:13px;" :loading="savingExit" @click="submitBeneficiaryExit">
+                      <v-icon size="16" class="mr-1">mdi-content-save</v-icon>
+                      Save Exit Record
                     </v-btn>
-                  </v-card-actions>
+                  </div>
                 </v-card>
               </v-dialog>
             </div>
@@ -8369,10 +8403,7 @@
         <div class="dev-icon-pulse"></div>
         <div class="dev-icon-inner">
           <v-icon size="36" color="white"
-            :icon="currentView === 'delisted'          ? 'mdi-account-remove-outline' :
-                   currentView === 'income-records'    ? 'mdi-chart-line' :
-                   currentView === 'compliance-report' ? 'mdi-file-document-check-outline' :
-                                                         'mdi-download-outline'">
+            :icon="currentView === 'income-records' ? 'mdi-chart-line' : 'mdi-download-outline'">
           </v-icon>
         </div>
       </div>
@@ -8386,20 +8417,13 @@
 
     <!-- Title -->
     <h2 class="dev-title" style="margin-bottom:12px;">
-      {{ currentView === 'delisted'          ? 'Delisted Beneficiaries' :
-         currentView === 'income-records'    ? 'Payout Records' :
-         currentView === 'compliance-report' ? 'Compliance Report' :
-                                               'Export Data' }}
+      {{ currentView === 'income-records' ? 'Payout Records' : 'Export Data' }}
     </h2>
 
     <!-- Subtitle -->
     <p class="dev-subtitle" style="margin-bottom:24px;">
-      {{ currentView === 'delisted'
-        ? 'This module will display beneficiaries removed from the program, along with their delisting reasons and history.'
-        : currentView === 'income-records'
+      {{ currentView === 'income-records'
         ? 'A comprehensive view of all payout transactions, disbursement history, and financial summaries.'
-        : currentView === 'compliance-report'
-        ? 'Detailed compliance reports across quarters, sessions, and beneficiary performance metrics.'
         : 'Export beneficiary data, assessment records, attendance logs, and reports in various formats.' }}
     </p>
 
@@ -8407,40 +8431,20 @@
     <div class="dev-progress-wrap" style="margin-bottom:20px;">
       <div class="dev-progress-label">
         <span>Development Progress</span>
-        <span class="dev-progress-pct">
-          {{ currentView === 'delisted'          ? '35%' :
-             currentView === 'income-records'    ? '60%' :
-             currentView === 'compliance-report' ? '20%' : '45%' }}
-        </span>
+        <span class="dev-progress-pct">{{ currentView === 'income-records' ? '60%' : '45%' }}</span>
       </div>
       <div class="dev-progress-track">
-        <div class="dev-progress-fill"
-          :style="{width: currentView === 'delisted'          ? '35%' :
-                          currentView === 'income-records'    ? '60%' :
-                          currentView === 'compliance-report' ? '20%' : '45%'}">
-        </div>
+        <div class="dev-progress-fill" :style="{width: currentView === 'income-records' ? '60%' : '45%'}"></div>
       </div>
     </div>
 
     <!-- Feature chips -->
     <div class="dev-features" style="margin-bottom:24px;">
-      <template v-if="currentView === 'delisted'">
-        <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> Data Schema</div>
-        <div class="dev-chip dev-chip--active"><v-icon size="12">mdi-progress-wrench</v-icon> UI Design</div>
-        <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> Filter Logic</div>
-        <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> Export</div>
-      </template>
-      <template v-else-if="currentView === 'income-records'">
+      <template v-if="currentView === 'income-records'">
         <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> Data Schema</div>
         <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> Backend API</div>
         <div class="dev-chip dev-chip--active"><v-icon size="12">mdi-progress-wrench</v-icon> Table View</div>
         <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> Reports</div>
-      </template>
-      <template v-else-if="currentView === 'compliance-report'">
-        <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> Requirements</div>
-        <div class="dev-chip dev-chip--active"><v-icon size="12">mdi-progress-wrench</v-icon> Data Model</div>
-        <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> UI Design</div>
-        <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> PDF Export</div>
       </template>
       <template v-else>
         <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> CSV Export</div>

@@ -231,7 +231,6 @@
         sessionFilterBarangay: null,
         syncingAttendance: false,
         syncAttendanceDialog: false,
-        syncingAttendance: false,
         loginTimestamp: null,
         logoutDialog: false,
         currentUser: null,
@@ -349,7 +348,7 @@
             children: [
               { title: 'For Payout', icon: 'mdi-cash-check', view: 'payouts', roles: ['admin', 'case_manager'] },
               { title: 'Authorized Grantees', icon: 'mdi-account-star-outline', view: 'grantees', roles: ['admin', 'case_manager'] },
-              { title: 'Payout Records', icon: 'mdi-chart-line', view: 'income-records', roles: ['admin', 'case_manager'] },
+              { title: 'Payout Records', icon: 'mdi-chart-line', view: 'income-records', roles: ['admin', 'case_manager'], comingSoon: true },
             ],
           },
           { section: 'Compliance Section', roles: ['admin', 'case_manager'] },
@@ -376,7 +375,7 @@
             children: [
               { title: 'Analytics', icon: 'mdi-chart-areaspline', view: 'reports', roles: ['admin', 'case_manager'] },
               { title: 'Compliance Report', icon: 'mdi-file-document-check-outline', view: 'compliance-report', roles: ['admin', 'case_manager'] },
-              { title: 'Export Data', icon: 'mdi-download-outline', view: 'export', roles: ['admin', 'case_manager'] },
+              { title: 'Export Data', icon: 'mdi-download-outline', view: 'export', roles: ['admin', 'case_manager'], comingSoon: true },
             ],
           },
           {
@@ -788,6 +787,8 @@
         journalMonth: 1,
         journalRegionFilter: null,
         journalSearch: "",
+        journalPage: 1,
+        journalPageSize: 15,
         journalRecords: [],
         loadingJournalRecords: false,
         journalDialog: false,
@@ -796,6 +797,8 @@
         contactCircleRecords: [],
         loadingContactCircle: false,
         contactCircleSearch: "",
+        contactCirclePage: 1,
+        contactCirclePageSize: 15,
         contactCircleDialog: false,
         savingContactCircle: false,
         contactCircleEditRecord: null,
@@ -1672,6 +1675,15 @@
         return list;
       },
 
+      paginatedJournalRecords() {
+        const start = (this.journalPage - 1) * this.journalPageSize;
+        return this.filteredJournalRecords.slice(start, start + this.journalPageSize);
+      },
+
+      journalPageCount() {
+        return Math.max(1, Math.ceil(this.filteredJournalRecords.length / this.journalPageSize));
+      },
+
       filteredContactCircleRecords() {
         let list = this.contactCircleRecords || [];
         if (this.contactCircleSearch && this.contactCircleSearch.trim().length > 0) {
@@ -1684,6 +1696,15 @@
           );
         }
         return list;
+      },
+
+      paginatedContactCircleRecords() {
+        const start = (this.contactCirclePage - 1) * this.contactCirclePageSize;
+        return this.filteredContactCircleRecords.slice(start, start + this.contactCirclePageSize);
+      },
+
+      contactCirclePageCount() {
+        return Math.max(1, Math.ceil(this.filteredContactCircleRecords.length / this.contactCirclePageSize));
       },
 
       amvatComparisonSourceRecords() {
@@ -2505,11 +2526,15 @@
         if (this.currentView === "booklet-compliance") this.loadBookletComplianceRecords();
       },
       journalMonth() {
+        this.journalPage = 1;
         if (this.currentView === "journal-notes") this.loadJournalRecords();
       },
       journalRegionFilter() {
+        this.journalPage = 1;
         if (this.currentView === "journal-notes") this.loadJournalRecords();
       },
+      journalSearch() { this.journalPage = 1; },
+      contactCircleSearch() { this.contactCirclePage = 1; },
 
       selectedBarangay(val) {
         this.loadBarangayStats(val);
