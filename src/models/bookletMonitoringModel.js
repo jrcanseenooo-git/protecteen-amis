@@ -3,6 +3,9 @@ const { SETTINGS } = require("../services/settings");
 
 const EDUCATION_SHEET = "education_monitoring";
 const BOOKLET_COMPLIANCE_SHEET = "booklet_compliance_monitoring";
+const BENEFICIARY_CACHE_TTL_MS = Number(process.env.BOOKLET_BENEFICIARY_CACHE_TTL_MS || 60000);
+let beneficiaryCache = null;
+let beneficiaryCacheAt = 0;
 
 const EDUCATION_HEADERS = [
   "ID Number",
@@ -91,6 +94,11 @@ async function getSheetRows(ss, sheetName) {
 }
 
 async function getEnrolledBeneficiaries(regionFilter) {
+  const now = Date.now();
+  if (beneficiaryCache && now - beneficiaryCacheAt < BENEFICIARY_CACHE_TTL_MS) {
+    return beneficiaryCache.filter((record) => !regionFilter || record.region === regionFilter);
+  }
+
   const ss = sheets.getActive();
   const exists = await ss.sheetExists(SETTINGS.SHEET_NAME.RESPONSES);
   if (!exists) return [];
@@ -103,7 +111,7 @@ async function getEnrolledBeneficiaries(regionFilter) {
   const idIdx = idx("id_number");
   if (idIdx === -1) return [];
 
-  return data.slice(1)
+  beneficiaryCache = data.slice(1)
     .filter((row) => row[idIdx])
     .map((row) => {
       const region = row[idx("region")] || "";
@@ -117,8 +125,10 @@ async function getEnrolledBeneficiaries(regionFilter) {
         municipality: row[idx("municipality_city")] || "",
         barangay: row[idx("barangay")] || "",
       };
-    })
-    .filter((record) => !regionFilter || record.region === regionFilter);
+    });
+  beneficiaryCacheAt = now;
+
+  return beneficiaryCache.filter((record) => !regionFilter || record.region === regionFilter);
 }
 
 function rowToObject(headers, row) {

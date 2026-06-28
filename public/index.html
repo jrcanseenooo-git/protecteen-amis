@@ -6012,15 +6012,31 @@
             </div>
           </div>
           <v-card-text class="pa-5">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px 16px;">
-              <v-checkbox v-model="bookletComplianceEditData.hats" label="HATS attendance verified" color="#7257b3" hide-details />
-              <v-checkbox v-model="bookletComplianceEditData.medicalCertificate" label="Medical certificate / prescription" color="#7257b3" hide-details />
-              <v-checkbox v-model="bookletComplianceEditData.pregnancyTest" label="Pregnancy test document" color="#7257b3" hide-details />
-              <v-checkbox v-model="bookletComplianceEditData.certificateEnrollment" label="Certificate of enrollment" color="#7257b3" hide-details />
-              <v-checkbox v-model="bookletComplianceEditData.bookletSignedByAdvisor" label="Booklet signed by advisor" color="#7257b3" hide-details />
-              <v-checkbox v-model="bookletComplianceEditData.certificateAttendance" label="Certificate of attendance" color="#7257b3" hide-details />
-              <v-checkbox v-model="bookletComplianceEditData.beneficiarySignature" label="Beneficiary signature" color="#7257b3" hide-details />
-              <v-checkbox v-model="bookletComplianceEditData.socialWorkerSignature" label="Social worker signature" color="#7257b3" hide-details />
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 14px;">
+              <v-checkbox v-model="bookletComplianceEditData.hats" color="#7257b3" density="compact" hide-details>
+                <template #label><span style="white-space:normal;line-height:1.25;">HATS attendance verified</span></template>
+              </v-checkbox>
+              <v-checkbox v-model="bookletComplianceEditData.medicalCertificate" color="#7257b3" density="compact" hide-details>
+                <template #label><span style="white-space:normal;line-height:1.25;">Medical certificate / prescription</span></template>
+              </v-checkbox>
+              <v-checkbox v-model="bookletComplianceEditData.pregnancyTest" color="#7257b3" density="compact" hide-details>
+                <template #label><span style="white-space:normal;line-height:1.25;">Pregnancy test document</span></template>
+              </v-checkbox>
+              <v-checkbox v-model="bookletComplianceEditData.certificateEnrollment" color="#7257b3" density="compact" hide-details>
+                <template #label><span style="white-space:normal;line-height:1.25;">Certificate of enrollment</span></template>
+              </v-checkbox>
+              <v-checkbox v-model="bookletComplianceEditData.bookletSignedByAdvisor" color="#7257b3" density="compact" hide-details>
+                <template #label><span style="white-space:normal;line-height:1.25;">Booklet signed by advisor</span></template>
+              </v-checkbox>
+              <v-checkbox v-model="bookletComplianceEditData.certificateAttendance" color="#7257b3" density="compact" hide-details>
+                <template #label><span style="white-space:normal;line-height:1.25;">Certificate of attendance</span></template>
+              </v-checkbox>
+              <v-checkbox v-model="bookletComplianceEditData.beneficiarySignature" color="#7257b3" density="compact" hide-details>
+                <template #label><span style="white-space:normal;line-height:1.25;">Beneficiary signature</span></template>
+              </v-checkbox>
+              <v-checkbox v-model="bookletComplianceEditData.socialWorkerSignature" color="#7257b3" density="compact" hide-details>
+                <template #label><span style="white-space:normal;line-height:1.25;">Social worker signature</span></template>
+              </v-checkbox>
             </div>
             <v-row dense class="mt-4">
               <v-col cols="12" md="5">

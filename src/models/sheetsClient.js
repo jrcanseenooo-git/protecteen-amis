@@ -3,6 +3,9 @@ const { google } = require("googleapis");
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 let _sheetsApiPromise = null;
+let _spreadsheetMetaCache = null;
+let _spreadsheetMetaCacheAt = 0;
+const SPREADSHEET_META_TTL_MS = Number(process.env.SHEETS_META_CACHE_TTL_MS || 60000);
 
 function colToLetter(col) {
   // 1-indexed column number -> "A", "B", ... "AA", etc.
@@ -29,6 +32,28 @@ async function getSheetsApi() {
   })();
 
   return _sheetsApiPromise;
+}
+
+async function getSpreadsheetMeta(forceRefresh = false) {
+  const now = Date.now();
+  if (
+    !forceRefresh &&
+    _spreadsheetMetaCache &&
+    now - _spreadsheetMetaCacheAt < SPREADSHEET_META_TTL_MS
+  ) {
+    return _spreadsheetMetaCache;
+  }
+
+  const api = await getSheetsApi();
+  const meta = await api.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  _spreadsheetMetaCache = meta;
+  _spreadsheetMetaCacheAt = now;
+  return meta;
+}
+
+function clearSpreadsheetMetaCache() {
+  _spreadsheetMetaCache = null;
+  _spreadsheetMetaCacheAt = 0;
 }
 
 /**
@@ -157,7 +182,7 @@ class SheetRef {
 
   async deleteRow(rowNumber) {
     const api = await getSheetsApi();
-    const meta = await api.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const meta = await getSpreadsheetMeta();
     const sheet = meta.data.sheets.find(
       (s) => s.properties.title === this.sheetName,
     );
@@ -216,12 +241,12 @@ class SpreadsheetRef {
         requests: [{ addSheet: { properties: { title: name } } }],
       },
     });
+    clearSpreadsheetMetaCache();
     return new SheetRef(name);
   }
 
   async sheetExists(name) {
-    const api = await getSheetsApi();
-    const meta = await api.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const meta = await getSpreadsheetMeta();
     return meta.data.sheets.some((s) => s.properties.title === name);
   }
 }
@@ -230,4 +255,4 @@ function getActive() {
   return new SpreadsheetRef();
 }
 
-module.exports = { getActive, SheetRef, Range };
+module.exports = { getActive, SheetRef, Range, clearSpreadsheetMetaCache };
