@@ -417,7 +417,7 @@
         </v-chip>
 
         <v-main
-          style="background: linear-gradient(160deg, #f3f0fb 0%, #ede9fe 40%, #f5f3ff 100%);">
+          style="background-image: url('https://lh3.googleusercontent.com/d/12_2tgQIF0__qjDBEqAOPjZxFQKbpq_Jg'); background-size: cover; background-position: center; background-attachment: fixed;">
           <v-container fluid :class="isMobile ? 'pa-3' : 'pa-6'">
 
             <!-- DASHBOARD HTML -->
@@ -4722,7 +4722,7 @@
             <div v-show="currentView === 'grantees'">
               <v-container fluid class="pa-4">
 
-                <!-- Header bar -->
+                <!-- Header -->
                 <div class="grantee-hero mb-5">
                   <div class="d-flex align-center justify-space-between flex-wrap gap-3">
                     <div>
@@ -4731,127 +4731,173 @@
                         Representatives who may receive payouts on behalf of beneficiaries
                       </div>
                     </div>
-                    <!-- Alert: beneficiaries without grantee -->
-                    <div v-if="granteesWithoutGrantee > 0"
-                      style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:10px;">
-                      <v-icon color="white" size="18">mdi-alert-circle-outline</v-icon>
-                      <div>
-                        <div style="color:white;font-size:13px;font-weight:700;">{{ granteesWithoutGrantee }}
-                          beneficiar{{ granteesWithoutGrantee === 1 ? 'y has' : 'ies have' }} no authorized grantee
-                          assigned</div>
-                        <div style="color:rgba(255,255,255,0.75);font-size:11px;">Update their record to assign a
-                          grantee</div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                      <!-- Unassigned alert badge -->
+                      <div v-if="granteesWithoutGrantee > 0"
+                        style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;padding:8px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;"
+                        @click="granteeStatusFilter = 'unassigned'">
+                        <v-icon color="white" size="16">mdi-alert-circle-outline</v-icon>
+                        <div>
+                          <div style="color:white;font-size:12px;font-weight:700;">{{ granteesWithoutGrantee }} unassigned</div>
+                          <div style="color:rgba(255,255,255,0.7);font-size:10px;">Click to filter</div>
+                        </div>
                       </div>
+                      <!-- Record count -->
+                      <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+                        <v-icon color="white" size="16">mdi-account-group</v-icon>
+                        <div style="color:white;font-size:12px;font-weight:700;">{{ granteeRecords.length }} total</div>
+                      </div>
+                      <v-btn variant="tonal" color="white" prepend-icon="mdi-refresh" density="compact"
+                        @click="loadGranteeRecords" :loading="loadingGrantees" style="color:#7257b3;">
+                        Refresh
+                      </v-btn>
                     </div>
                   </div>
                 </div>
 
-                <!-- Filters + Search bar -->
-                <div class="grantee-filter-bar mb-4">
-                  <v-text-field v-model="granteeSearch" placeholder="Search name, ID..."
-                    prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable
-                    style="max-width:260px;" />
+                <!-- Filter bar -->
+                <v-card variant="outlined" class="mb-4 pa-3" style="border-radius:12px;border-color:#e0d8ff;">
+                  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                    <!-- Search -->
+                    <v-text-field v-model="granteeSearch" placeholder="Search beneficiary or grantee name, ID..."
+                      prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable
+                      style="min-width:220px;flex:1;" />
 
-                  <!-- Admin region filter -->
-                  <v-select v-if="isAdmin" v-model="granteeRegionFilter" :items="granteeRegionOptions"
-                    item-title="title" item-value="value" variant="outlined" density="compact" hide-details
-                    prepend-inner-icon="mdi-map-marker-outline" style="max-width:170px;" />
+                    <!-- Status filter -->
+                    <v-select v-model="granteeStatusFilter"
+                      :items="[{title:'All Status',value:null},{title:'Assigned',value:'assigned'},{title:'Unassigned',value:'unassigned'}]"
+                      item-title="title" item-value="value" variant="outlined" density="compact" hide-details
+                      prepend-inner-icon="mdi-filter-outline" style="min-width:150px;max-width:180px;" />
 
-                  <!-- Case manager barangay filter -->
-                  <v-text-field v-if="!isAdmin" v-model="granteeBarangayFilter" placeholder="Filter by barangay"
-                    variant="outlined" density="compact" hide-details prepend-inner-icon="mdi-home-city-outline"
-                    clearable style="max-width:200px;" />
+                    <!-- Admin region filter -->
+                    <v-select v-if="isAdmin" v-model="granteeRegionFilter" :items="granteeRegionOptions"
+                      item-title="title" item-value="value" variant="outlined" density="compact" hide-details
+                      prepend-inner-icon="mdi-map-marker-outline" style="min-width:150px;max-width:180px;" />
 
-                  <!-- Relationship filter -->
-                  <v-select v-model="granteeRelFilter"
-                    :items="[{title:'All Relationships',value:null},...(relationshipOptions||[]).map(r=>({title:r,value:r}))]"
-                    item-title="title" item-value="value" variant="outlined" density="compact" hide-details
-                    prepend-inner-icon="mdi-account-heart-outline" style="max-width:200px;" />
+                    <!-- Case manager barangay filter -->
+                    <v-text-field v-if="!isAdmin" v-model="granteeBarangayFilter" placeholder="Filter by barangay"
+                      variant="outlined" density="compact" hide-details prepend-inner-icon="mdi-home-city-outline"
+                      clearable style="min-width:160px;max-width:200px;" />
 
-                  <v-spacer />
-                  <div class="grantee-count-chip">
-                    <v-icon size="14" style="color:#7257b3;">mdi-account-group</v-icon>
-                    <span>{{ filteredGranteeRecords.length }} record{{ filteredGranteeRecords.length !== 1 ? 's' : '' }}</span>
+                    <!-- Relationship filter -->
+                    <v-select v-model="granteeRelFilter"
+                      :items="[{title:'All Relationships',value:null},...(relationshipOptions||[]).map(r=>({title:r,value:r}))]"
+                      item-title="title" item-value="value" variant="outlined" density="compact" hide-details
+                      prepend-inner-icon="mdi-account-heart-outline" style="min-width:160px;max-width:200px;" />
+
+                    <v-spacer />
+                    <!-- Result count chip -->
+                    <div style="display:inline-flex;align-items:center;gap:6px;background:#f0ebff;border:1.5px solid #ddd6fe;border-radius:20px;padding:5px 12px;white-space:nowrap;">
+                      <v-icon size="13" color="#7257b3">mdi-account-search</v-icon>
+                      <span style="font-size:12px;font-weight:700;color:#7257b3;">{{ filteredGranteeRecords.length }} result{{ filteredGranteeRecords.length !== 1 ? 's' : '' }}</span>
+                    </div>
                   </div>
-                  <v-btn variant="tonal" color="primary" prepend-icon="mdi-refresh" density="compact"
-                    @click="loadGranteeRecords" :loading="loadingGrantees">
-                    Refresh
-                  </v-btn>
-                </div>
-
-                <!-- Table -->
-                <div v-if="!loadingGrantees && filteredGranteeRecords.length > 0" class="grantee-table-wrap">
-                  <table class="grantee-table">
-                    <thead>
-                      <tr>
-                        <th>Beneficiary</th>
-                        <th>ID Number</th>
-                        <th>Municipality/City</th>
-                        <th>Barangay</th>
-                        <th>Primary Authorized Grantee</th>
-                        <th>Relationship</th>
-                        <th>Contact</th>
-                        <th>Secondary Authorized Grantee</th>
-                        <th>Last Updated</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="g in filteredGranteeRecords" :key="g.id_number" class="grantee-table-row">
-                        <td>
-                          <div class="grantee-table-name">
-                            <!-- <div class="grantee-table-avatar">{{ getInitials(g.name) }}</div> -->
-                            <span>{{ g.name }}</span>
-                          </div>
-                        </td>
-                        <td><span class="grantee-id-chip">{{ g.id_number }}</span></td>
-                        <td style="font-size:12px;color:#475569;">{{ g.municipality || '—' }}</td>
-                        <td style="font-size:12px;color:#475569;">{{ g.barangay || '—' }}</td>
-                        <td>
-                          <div v-if="g.grantee_name" style="display:flex;align-items:center;gap:6px;">
-                            <!-- <span class="grantee-slot-badge grantee-slot-primary">Primary</span> -->
-                            <span style="font-size:13px;font-weight:600;color:#1e1b4b;">{{ g.grantee_name }}</span>
-                          </div>
-                          <span v-else style="color:#cbd5e1;font-size:12px;">Not set</span>
-                        </td>
-                        <td style="font-size:12px;color:#475569;">{{ g.relationship || '—' }}</td>
-                        <td style="font-size:12px;color:#475569;">{{ g.contact || '—' }}</td>
-                        <td>
-                          <div v-if="g.grantee2_name" style="display:flex;align-items:center;gap:6px;">
-                            <span class="grantee-slot-badge grantee-slot-secondary">Secondary</span>
-                            <span style="font-size:12px;color:#475569;">{{ g.grantee2_name }}</span>
-                          </div>
-                          <span v-else style="color:#cbd5e1;font-size:12px;">—</span>
-                        </td>
-                        <td style="font-size:11px;color:#94a3b8;">{{ g.timestamp ? new
-                          Date(g.timestamp).toLocaleDateString() : '—' }}</td>
-                        <td>
-                          <div style="display:flex;gap:6px;">
-                            <v-btn size="x-small" variant="tonal" color="primary" icon="mdi-eye"
-                              @click="openGranteeViewDialog(g)" />
-                            <v-btn size="x-small" variant="tonal" color="warning" icon="mdi-pencil"
-                              @click="openGranteeDialog(g)" />
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <!-- Empty state -->
-                <div v-else-if="!loadingGrantees" style="text-align:center;padding:60px 20px;">
-                  <v-icon size="64" color="grey-lighten-2">mdi-account-star-outline</v-icon>
-                  <div style="font-size:16px;font-weight:700;color:#94a3b8;margin-top:12px;">No grantees found</div>
-                  <div style="font-size:13px;color:#cbd5e1;margin-top:4px;">Assign grantees via the beneficiary's Update
-                    Record → Authorized Grantee tab</div>
-                </div>
+                </v-card>
 
                 <!-- Skeleton loader -->
                 <v-row v-if="loadingGrantees">
-                  <v-col v-for="n in 4" :key="n" cols="12">
+                  <v-col v-for="n in 6" :key="n" cols="12" class="py-1">
                     <v-skeleton-loader type="table-row" />
                   </v-col>
                 </v-row>
+
+                <!-- Table -->
+                <v-card v-else-if="filteredGranteeRecords.length > 0" variant="outlined"
+                  style="border-radius:14px;overflow:hidden;border-color:#e0d8ff;">
+                  <div style="overflow-x:auto;">
+                    <table class="hc-table" style="min-width:700px;">
+                      <thead>
+                        <tr>
+                          <th class="hc-th" style="min-width:200px;">Beneficiary</th>
+                          <th class="hc-th" style="min-width:140px;">Location</th>
+                          <th class="hc-th" style="min-width:190px;">Primary Grantee</th>
+                          <th class="hc-th" style="min-width:160px;">Secondary Grantee</th>
+                          <th class="hc-th" style="min-width:100px;">Last Updated</th>
+                          <th class="hc-th" style="width:90px;text-align:center;">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="g in paginatedGranteeRecords" :key="g.id_number" class="hc-row">
+
+                          <!-- Beneficiary -->
+                          <td class="hc-td">
+                            <div class="hc-name">{{ g.name }}</div>
+                            <div class="hc-sub-info"><span class="hc-id-badge">{{ g.id_number }}</span></div>
+                          </td>
+
+                          <!-- Location -->
+                          <td class="hc-td">
+                            <div style="font-size:12px;font-weight:600;color:#374151;">{{ g.municipality || '—' }}</div>
+                            <div style="font-size:11px;color:#6b7280;margin-top:2px;">{{ g.barangay || '' }}</div>
+                          </td>
+
+                          <!-- Primary Grantee -->
+                          <td class="hc-td">
+                            <template v-if="g.grantee_name">
+                              <div style="font-size:13px;font-weight:600;color:#1e1b4b;">{{ g.grantee_name }}</div>
+                              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;">
+                                <span v-if="g.relationship" style="font-size:10px;font-weight:600;background:#f0ebff;color:#7257b3;border:1px solid #ddd6fe;border-radius:4px;padding:1px 6px;">{{ g.relationship }}</span>
+                                <span v-if="g.contact" style="font-size:11px;color:#6b7280;">{{ g.contact }}</span>
+                              </div>
+                            </template>
+                            <span v-else style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#f59e0b;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;">
+                              <v-icon size="11" color="#f59e0b">mdi-alert-outline</v-icon> Not assigned
+                            </span>
+                          </td>
+
+                          <!-- Secondary Grantee -->
+                          <td class="hc-td">
+                            <template v-if="g.grantee2_name">
+                              <div style="font-size:12px;font-weight:600;color:#374151;">{{ g.grantee2_name }}</div>
+                              <div v-if="g.relationship2 || g.contact2" style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;">
+                                <span v-if="g.relationship2" style="font-size:10px;font-weight:600;background:#f8f8f8;color:#6b7280;border:1px solid #e5e7eb;border-radius:4px;padding:1px 6px;">{{ g.relationship2 }}</span>
+                                <span v-if="g.contact2" style="font-size:11px;color:#6b7280;">{{ g.contact2 }}</span>
+                              </div>
+                            </template>
+                            <span v-else style="font-size:12px;color:#d1d5db;">—</span>
+                          </td>
+
+                          <!-- Last Updated -->
+                          <td class="hc-td">
+                            <span style="font-size:11px;color:#94a3b8;">{{ g.timestamp ? new Date(g.timestamp).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—' }}</span>
+                          </td>
+
+                          <!-- Actions -->
+                          <td class="hc-td" style="text-align:center;">
+                            <div style="display:flex;gap:5px;justify-content:center;">
+                              <v-btn size="x-small" variant="tonal" color="primary" icon="mdi-eye"
+                                @click="openGranteeViewDialog(g)" />
+                              <v-btn size="x-small" variant="tonal" color="warning" icon="mdi-pencil"
+                                @click="openGranteeDialog(g)" />
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Pagination footer -->
+                  <div v-if="filteredGranteeRecords.length > granteePageSize" class="amvat-tbl-footer">
+                    <span class="amvat-tbl-footer-info">
+                      Showing {{ (granteePage - 1) * granteePageSize + 1 }}–{{ Math.min(granteePage * granteePageSize, filteredGranteeRecords.length) }} of {{ filteredGranteeRecords.length }}
+                    </span>
+                    <v-pagination v-model="granteePage" :length="granteePageCount" :total-visible="5" density="compact" color="#7257b3" />
+                    <v-select v-model="granteePageSize" :items="[10,15,25,50]" label="Rows" variant="outlined" density="compact" hide-details style="max-width:85px;" @update:modelValue="granteePage = 1" />
+                  </div>
+                </v-card>
+
+                <!-- Empty state -->
+                <div v-else style="text-align:center;padding:60px 20px;">
+                  <v-icon size="64" color="#ddd6fe">mdi-account-star-outline</v-icon>
+                  <div style="font-size:16px;font-weight:700;color:#94a3b8;margin-top:12px;">No grantees found</div>
+                  <div style="font-size:13px;color:#c4b5fd;margin-top:4px;">
+                    {{ granteeSearch || granteeStatusFilter || granteeRelFilter ? 'Try adjusting your filters.' : 'Assign grantees via the beneficiary\'s Update Record → Authorized Grantee tab.' }}
+                  </div>
+                  <v-btn v-if="granteeSearch || granteeStatusFilter || granteeRelFilter" variant="tonal" color="primary" class="mt-4"
+                    @click="granteeSearch = ''; granteeStatusFilter = null; granteeRelFilter = null;">
+                    Clear Filters
+                  </v-btn>
+                </div>
 
               </v-container>
             </div>
@@ -8386,7 +8432,7 @@
       </v-dialog>
 
 <!-- ── UNDER DEVELOPMENT VIEWS ── -->
-<div v-show="['income-records','export'].includes(currentView)"
+<div v-show="['income-records','export','payouts'].includes(currentView)"
   style="position:fixed; top:64px; left:280px; right:0; bottom:0; display:flex; align-items:center; justify-content:center; z-index:1; pointer-events:none;">
 
   <!-- Orbs -->
@@ -8403,7 +8449,7 @@
         <div class="dev-icon-pulse"></div>
         <div class="dev-icon-inner">
           <v-icon size="36" color="white"
-            :icon="currentView === 'income-records' ? 'mdi-chart-line' : 'mdi-download-outline'">
+            :icon="currentView === 'payouts' ? 'mdi-cash-check' : currentView === 'grantees' ? 'mdi-account-star-outline' : currentView === 'income-records' ? 'mdi-chart-line' : 'mdi-download-outline'">
           </v-icon>
         </div>
       </div>
@@ -8417,12 +8463,16 @@
 
     <!-- Title -->
     <h2 class="dev-title" style="margin-bottom:12px;">
-      {{ currentView === 'income-records' ? 'Payout Records' : 'Export Data' }}
+      {{ currentView === 'payouts' ? 'For Payout' : currentView === 'grantees' ? 'Authorized Grantees' : currentView === 'income-records' ? 'Payout Records' : 'Export Data' }}
     </h2>
 
     <!-- Subtitle -->
     <p class="dev-subtitle" style="margin-bottom:24px;">
-      {{ currentView === 'income-records'
+      {{ currentView === 'payouts'
+        ? 'Cash grant disbursement tracking and release management for enrolled beneficiaries.'
+        : currentView === 'grantees'
+        ? 'Manage authorized recipients for cash grant disbursements on behalf of beneficiaries.'
+        : currentView === 'income-records'
         ? 'A comprehensive view of all payout transactions, disbursement history, and financial summaries.'
         : 'Export beneficiary data, assessment records, attendance logs, and reports in various formats.' }}
     </p>
@@ -8431,16 +8481,28 @@
     <div class="dev-progress-wrap" style="margin-bottom:20px;">
       <div class="dev-progress-label">
         <span>Development Progress</span>
-        <span class="dev-progress-pct">{{ currentView === 'income-records' ? '60%' : '45%' }}</span>
+        <span class="dev-progress-pct">{{ currentView === 'payouts' ? '40%' : currentView === 'grantees' ? '35%' : currentView === 'income-records' ? '60%' : '45%' }}</span>
       </div>
       <div class="dev-progress-track">
-        <div class="dev-progress-fill" :style="{width: currentView === 'income-records' ? '60%' : '45%'}"></div>
+        <div class="dev-progress-fill" :style="{width: currentView === 'payouts' ? '40%' : currentView === 'grantees' ? '35%' : currentView === 'income-records' ? '60%' : '45%'}"></div>
       </div>
     </div>
 
     <!-- Feature chips -->
     <div class="dev-features" style="margin-bottom:24px;">
-      <template v-if="currentView === 'income-records'">
+      <template v-if="currentView === 'payouts'">
+        <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> Data Schema</div>
+        <div class="dev-chip dev-chip--active"><v-icon size="12">mdi-progress-wrench</v-icon> Release UI</div>
+        <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> Status Tracking</div>
+        <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> Reports</div>
+      </template>
+      <template v-else-if="currentView === 'grantees'">
+        <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> Data Schema</div>
+        <div class="dev-chip dev-chip--active"><v-icon size="12">mdi-progress-wrench</v-icon> Grantee Form</div>
+        <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> Verification</div>
+        <div class="dev-chip"><v-icon size="12">mdi-clock-outline</v-icon> Link to Payout</div>
+      </template>
+      <template v-else-if="currentView === 'income-records'">
         <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> Data Schema</div>
         <div class="dev-chip dev-chip--done"><v-icon size="12">mdi-check</v-icon> Backend API</div>
         <div class="dev-chip dev-chip--active"><v-icon size="12">mdi-progress-wrench</v-icon> Table View</div>
