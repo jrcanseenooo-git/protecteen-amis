@@ -80,6 +80,7 @@ const LOCAL_ONLY_FUNCTIONS = new Set([
   "getContactCircle",
   "getEducationMonitoringRecords",
   "getExitRecords",
+  "getGranteeRecords",
   "getJournalWorkerNotes",
   "recordBeneficiaryExit",
   "saveBookletComplianceRecord",

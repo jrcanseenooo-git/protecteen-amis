@@ -462,10 +462,15 @@
         editingGrantee: null,
         granteeFormData: {
           id_number: "",
+          name: "",
           grantee_name: "",
           relationship: "",
           contact: "",
-          address: "",
+          grantee_address: "",
+          grantee2_name: "",
+          relationship2: "",
+          contact2: "",
+          grantee2_address: "",
           valid_id_type: "",
           notes: "",
         },
@@ -2177,8 +2182,9 @@
 
         // Admin: region filter
         if (this.isAdmin && this.granteeRegionFilter) {
+          const targetRegion = this.normalizeRegionCode(this.granteeRegionFilter);
           records = records.filter(r =>
-            (r.region || "").toString().toUpperCase() === this.granteeRegionFilter.toUpperCase()
+            this.getGranteeRecordRegion(r) === targetRegion
           );
         }
 
@@ -2192,7 +2198,9 @@
         // Relationship filter
         if (this.granteeRelFilter) {
           records = records.filter(r =>
-            (r.relationship || "") === this.granteeRelFilter
+            [r.relationship, r.relationship2, r.grantee2_relationship].some(
+              rel => (rel || "") === this.granteeRelFilter,
+            )
           );
         }
 
@@ -2207,9 +2215,12 @@
         if (this.granteeSearch) {
           const search = this.granteeSearch.toLowerCase();
           records = records.filter(r =>
-            String(r.name).toLowerCase().includes(search) ||
-            String(r.grantee_name).toLowerCase().includes(search) ||
-            String(r.id_number).toLowerCase().includes(search)
+            String(r.name || "").toLowerCase().includes(search) ||
+            String(r.grantee_name || "").toLowerCase().includes(search) ||
+            String(r.grantee2_name || "").toLowerCase().includes(search) ||
+            String(r.id_number || "").toLowerCase().includes(search) ||
+            String(r.municipality || "").toLowerCase().includes(search) ||
+            String(r.barangay || "").toLowerCase().includes(search)
           );
         }
 
@@ -2235,8 +2246,7 @@
       },
 
       granteesWithoutGrantee() {
-        const withGrantee = new Set(this.granteeRecords.map(r => r.id_number));
-        return (this.enrolledList || []).filter(b => !withGrantee.has(b.id_number)).length;
+        return (this.granteeRecords || []).filter((record) => !record.grantee_name).length;
       },
 
       filteredPTRecords() {
@@ -2695,10 +2705,11 @@
           }
           this.startSessionTestPolling();
         } else if (newView === "payouts") {
-          this.loadPayoutRecords();
-          this.loadEnrolledList(false);
+          // For Payout is intentionally parked behind the development card.
+          // Do not load Sheets-backed payout/enrolled data for this view yet.
         } else if (newView === "grantees") {
           this.loadGranteeRecords();
+          if (this.enrolledList.length === 0) this.loadEnrolledList(false);
         } else if (newView === "pt-results") {
           this.loadPTResults();
           this.loadEnrolledList(false);
@@ -7968,13 +7979,122 @@
       },
 
       // GRANTEES
+      normalizeRegionCode(value) {
+        return String(value || "")
+          .replace(/^region\s+/i, "")
+          .trim()
+          .toUpperCase();
+      },
+
+      getGranteeRecordRegion(record) {
+        const directRegion = record?.region || record?.region_code || record?.regionCode;
+        if (directRegion) return this.normalizeRegionCode(directRegion);
+
+        const beneficiary = (this.enrolledList || []).find(
+          (item) =>
+            String(item.id_number || item.idNumber || "") ===
+            String(record?.id_number || ""),
+        );
+
+        return this.normalizeRegionCode(
+          beneficiary?.region || beneficiary?.region_code || beneficiary?.regionCode,
+        );
+      },
+
+      firstValue(...values) {
+        const found = values.find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+        return found === undefined ? "" : found;
+      },
+
+      normalizeGranteeRecord(record) {
+        const normalized = { ...(record || {}) };
+
+        normalized.id_number = this.firstValue(
+          normalized.id_number,
+          normalized.idNumber,
+          normalized["ID Number"],
+        );
+        normalized.name = this.firstValue(
+          normalized.name,
+          normalized.beneficiary_name,
+          normalized.beneficiaryName,
+          normalized["Beneficiary Full Name"],
+        );
+        normalized.grantee_name = this.firstValue(
+          normalized.grantee_name,
+          normalized.authorizedGrantee,
+          normalized.first_authorized_grantee,
+          normalized["First Authorized Grantee"],
+        );
+        normalized.relationship = this.firstValue(
+          normalized.relationship,
+          normalized.granteeRelationship,
+          normalized.first_authorized_grantee_relationship,
+          normalized["First Authorized Grantee Relationship"],
+        );
+        normalized.contact = this.firstValue(
+          normalized.contact,
+          normalized.granteeContactNumber,
+          normalized.first_authorized_grantee_contact_number,
+          normalized["First Authorized Grantee Contact Number"],
+        );
+        normalized.grantee_address = this.firstValue(
+          normalized.grantee_address,
+          normalized.granteeAddress,
+          normalized.first_authorized_grantee_address,
+          normalized["First Authorized Grantee Address"],
+        );
+        normalized.grantee2_name = this.firstValue(
+          normalized.grantee2_name,
+          normalized.authorizedGrantee2,
+          normalized.second_authorized_grantee,
+          normalized["Second Authorized Grantee"],
+        );
+        normalized.relationship2 = this.firstValue(
+          normalized.relationship2,
+          normalized.grantee2_relationship,
+          normalized.granteeRelationship2,
+          normalized.second_authorized_grantee_relationship,
+          normalized["Second Authorized Grantee Relationship"],
+        );
+        normalized.contact2 = this.firstValue(
+          normalized.contact2,
+          normalized.grantee2_contact,
+          normalized.granteeContactNumber2,
+          normalized.second_authorized_grantee_contact_number,
+          normalized["Second Authorized Grantee Contact Number"],
+        );
+        normalized.grantee2_address = this.firstValue(
+          normalized.grantee2_address,
+          normalized.granteeAddress2,
+          normalized.second_authorized_grantee_address,
+          normalized["Second Authorized Grantee Address"],
+        );
+        normalized.timestamp = this.firstValue(
+          normalized.timestamp,
+          normalized.lastUpdated,
+          normalized.last_updated,
+          normalized.updatedAt,
+          normalized["Last Updated"],
+        );
+        normalized.updated_by = this.firstValue(
+          normalized.updated_by,
+          normalized.updatedBy,
+          normalized["Updated By"],
+        );
+
+        return normalized;
+      },
+
       loadGranteeRecords() {
         this.loadingGrantees = true;
         google.script.run
           .withSuccessHandler((response) => {
             const result = JSON.parse(response);
             if (result.success) {
-              this.granteeRecords = result.records;
+              this.granteeRecords = (result.records || []).map((record) =>
+                this.normalizeGranteeRecord(record),
+              );
             } else {
               this.showSnackbar(
                 result.message || "Failed to load grantees",
@@ -7992,26 +8112,39 @@
 
       openGranteeDialog(item) {
         if (!item) return; // No adding from this module
+        this.granteeViewDialog = false;
+        this.granteeViewRecord = null;
         this.editingGrantee = item;
         this.granteeFormData = {
           id_number: item.id_number,
-          grantee_name: item.grantee_name,
-          relationship: item.relationship,
-          contact: item.contact,
-          grantee_address: item.grantee_address,
-          slot: item.slot,
+          name: item.name || "",
+          grantee_name: item.grantee_name || "",
+          relationship: item.relationship || "",
+          contact: item.contact || "",
+          grantee_address: item.grantee_address || "",
+          grantee2_name: item.grantee2_name || "",
+          relationship2: item.relationship2 || item.grantee2_relationship || "",
+          contact2: item.contact2 || item.grantee2_contact || "",
+          grantee2_address: item.grantee2_address || "",
+          slot: item.slot || "Primary",
         };
         this.granteeDialog = true;
       },
 
       openGranteeViewDialog(item) {
+        this.granteeDialog = false;
+        this.editingGrantee = null;
         this.granteeViewRecord = item;
         this.granteeViewDialog = true;
       },
 
       saveGrantee(confirmed = false) {
-        if (!this.$refs.granteeForm.validate()) {
-          this.showSnackbar("Please fill all required fields", "error");
+        if (!this.granteeFormData.grantee_name || !this.granteeFormData.relationship) {
+          this.showSnackbar("Please complete the primary grantee name and relationship.", "error");
+          return;
+        }
+        if (this.granteeFormData.grantee2_name && !this.granteeFormData.relationship2) {
+          this.showSnackbar("Please select the secondary grantee relationship.", "error");
           return;
         }
         if (!confirmed) {
@@ -8025,9 +8158,17 @@
           return;
         }
         this.savingGrantee = true;
-        const record = this.enrolledList.find(
-          (r) => r.id_number === this.granteeFormData.id_number,
-        );
+        const payload = {
+          idNumber: this.granteeFormData.id_number,
+          authorizedGrantee: this.granteeFormData.grantee_name,
+          granteeRelationship: this.granteeFormData.relationship,
+          granteeContactNumber: this.granteeFormData.contact,
+          granteeAddress: this.granteeFormData.grantee_address,
+          authorizedGrantee2: this.granteeFormData.grantee2_name,
+          granteeRelationship2: this.granteeFormData.relationship2,
+          granteeContactNumber2: this.granteeFormData.contact2,
+          granteeAddress2: this.granteeFormData.grantee2_address,
+        };
         google.script.run
           .withSuccessHandler((response) => {
             const result = JSON.parse(response);
@@ -8047,10 +8188,7 @@
             this.savingGrantee = false;
             this.showSnackbar("Error: " + error, "error");
           })
-          .saveGrantee(
-            { ...this.granteeFormData },
-            this.getSessionData(),
-          );
+          .saveEnrolledInfo(payload, this.getSessionData());
       },
 
       deleteGrantee(item, confirmed = false) {

@@ -28,6 +28,7 @@ const AG_HEADERS = [
   "First Authorized Grantee Contact Number", "First Authorized Grantee Address",
   "Second Authorized Grantee", "Second Authorized Grantee Relationship",
   "Second Authorized Grantee Contact Number", "Second Authorized Grantee Address",
+  "Last Updated", "Updated By",
 ];
 
 async function initSheet(ss, name, headerRow) {
@@ -180,10 +181,14 @@ async function saveEnrolledInfo(data, clientData) {
     if (currentHeaders[2] === "Address" || currentHeaders[2] === "Region") {
       await agSheet.clearContents();
       await agSheet.getRange(1, 1, 1, AG_HEADERS.length).setValues([AG_HEADERS]);
+    } else if (currentHeaders.length < AG_HEADERS.length) {
+      await agSheet.getRange(1, 1, 1, AG_HEADERS.length).setValues([
+        AG_HEADERS.map((header, index) => currentHeaders[index] || header),
+      ]);
     }
 
     const agLastRow = await agSheet.getLastRow();
-    const agAllData = agLastRow > 1 ? await agSheet.getRange(1, 1, agLastRow, 12).getValues() : [];
+    const agAllData = agLastRow > 1 ? await agSheet.getRange(1, 1, agLastRow, AG_HEADERS.length).getValues() : [];
     let agTargetRow = null;
     for (let i = 1; i < agAllData.length; i++) {
       if (agAllData[i][0] === data.idNumber) {
@@ -198,10 +203,11 @@ async function saveEnrolledInfo(data, clientData) {
       data.granteeContactNumber || "", data.granteeAddress || "",
       data.authorizedGrantee2 || "", data.granteeRelationship2 || "",
       data.granteeContactNumber2 || "", data.granteeAddress2 || "",
+      new Date().toISOString(), currentUser.email || "",
     ];
 
     if (agTargetRow) {
-      await agSheet.getRange(agTargetRow, 1, 1, 12).setValues([agRow]);
+      await agSheet.getRange(agTargetRow, 1, 1, AG_HEADERS.length).setValues([agRow]);
     } else {
       await agSheet.appendRow(agRow);
     }

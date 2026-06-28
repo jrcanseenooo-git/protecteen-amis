@@ -6,6 +6,9 @@ let _sheetsApiPromise = null;
 let _spreadsheetMetaCache = null;
 let _spreadsheetMetaCacheAt = 0;
 const SPREADSHEET_META_TTL_MS = Number(process.env.SHEETS_META_CACHE_TTL_MS || 60000);
+const SHEET_VALUES_CACHE_TTL_MS = Number(process.env.SHEETS_VALUES_CACHE_TTL_MS || 30000);
+const _sheetValuesCache = new Map();
+const _sheetValuesInflight = new Map();
 
 function colToLetter(col) {
   // 1-indexed column number -> "A", "B", ... "AA", etc.
@@ -54,6 +57,20 @@ async function getSpreadsheetMeta(forceRefresh = false) {
 function clearSpreadsheetMetaCache() {
   _spreadsheetMetaCache = null;
   _spreadsheetMetaCacheAt = 0;
+}
+
+function cloneValues(values) {
+  return (values || []).map((row) => [...row]);
+}
+
+function clearSheetValuesCache(sheetName) {
+  if (!sheetName) {
+    _sheetValuesCache.clear();
+    _sheetValuesInflight.clear();
+    return;
+  }
+  _sheetValuesCache.delete(sheetName);
+  _sheetValuesInflight.delete(sheetName);
 }
 
 /**
@@ -110,6 +127,7 @@ class Range {
       valueInputOption: "USER_ENTERED",
       requestBody: { values: values2D },
     });
+    clearSheetValuesCache(this.sheetName);
   }
 
   async setValue(value) {
@@ -130,12 +148,36 @@ class SheetRef {
   }
 
   async _allValues() {
+    const now = Date.now();
+    const cached = _sheetValuesCache.get(this.sheetName);
+    if (cached && cached.expiresAt > now) {
+      return cloneValues(cached.values);
+    }
+
+    if (_sheetValuesInflight.has(this.sheetName)) {
+      return cloneValues(await _sheetValuesInflight.get(this.sheetName));
+    }
+
     const api = await getSheetsApi();
-    const res = await api.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `'${this.sheetName}'`,
-    });
-    return res.data.values || [];
+    const request = api.spreadsheets.values
+      .get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `'${this.sheetName}'`,
+      })
+      .then((res) => {
+        const values = res.data.values || [];
+        _sheetValuesCache.set(this.sheetName, {
+          values: cloneValues(values),
+          expiresAt: Date.now() + SHEET_VALUES_CACHE_TTL_MS,
+        });
+        return values;
+      })
+      .finally(() => {
+        _sheetValuesInflight.delete(this.sheetName);
+      });
+
+    _sheetValuesInflight.set(this.sheetName, request);
+    return cloneValues(await request);
   }
 
   async getDataRange() {
@@ -178,6 +220,7 @@ class SheetRef {
       insertDataOption: "INSERT_ROWS",
       requestBody: { values: [rowArray] },
     });
+    clearSheetValuesCache(this.sheetName);
   }
 
   async deleteRow(rowNumber) {
@@ -204,6 +247,7 @@ class SheetRef {
         ],
       },
     });
+    clearSheetValuesCache(this.sheetName);
   }
 
   async clearContents() {
@@ -212,6 +256,7 @@ class SheetRef {
       spreadsheetId: SPREADSHEET_ID,
       range: `'${this.sheetName}'`,
     });
+    clearSheetValuesCache(this.sheetName);
   }
 
   async clear() {
@@ -242,6 +287,7 @@ class SpreadsheetRef {
       },
     });
     clearSpreadsheetMetaCache();
+    clearSheetValuesCache(name);
     return new SheetRef(name);
   }
 
@@ -255,4 +301,4 @@ function getActive() {
   return new SpreadsheetRef();
 }
 
-module.exports = { getActive, SheetRef, Range, clearSpreadsheetMetaCache };
+module.exports = { getActive, SheetRef, Range, clearSpreadsheetMetaCache, clearSheetValuesCache };
