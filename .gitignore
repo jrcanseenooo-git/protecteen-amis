@@ -38,6 +38,7 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+.claude/
 
 # ── Logs / local scratch ────────────────────────────────────────
 *.log
