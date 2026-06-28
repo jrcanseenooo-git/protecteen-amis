@@ -5191,6 +5191,166 @@
               </v-row>
             </div>
 
+            <!-- EDUCATION MONITORING VIEW -->
+            <div v-show="currentView === 'education-monitoring'">
+              <v-row>
+                <v-col cols="12">
+                  <v-card class="glass-card">
+                    <v-card-title class="pa-3 px-6">
+                      <div class="d-flex align-center flex-wrap" style="width:100%;gap:12px;">
+                        <div>
+                          <span class="text-h6">Education Attendance Monitoring</span>
+                          <div class="text-caption text-grey">Booklet-based school, ALS, TESDA, and return-to-school monitoring</div>
+                        </div>
+                        <v-spacer></v-spacer>
+                        <v-chip color="success" variant="tonal" size="small">{{ educationStatusCounts.Compliant || 0 }} compliant</v-chip>
+                        <v-chip color="warning" variant="tonal" size="small">{{ educationStatusCounts.Partial || 0 }} partial</v-chip>
+                        <v-chip color="error" variant="tonal" size="small">{{ educationStatusCounts['Non-Compliant'] || 0 }} non-compliant</v-chip>
+                      </div>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text class="pa-4">
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+                        <v-select v-model="educationMonth" :items="bookletMonths" label="Month" variant="outlined" density="compact" hide-details style="max-width:150px;" />
+                        <v-select v-if="isAdmin" v-model="educationRegionFilter" :items="availableRegions" label="Region" variant="outlined" density="compact" hide-details clearable style="max-width:180px;" />
+                        <v-select v-model="educationStatusFilter" :items="['Compliant','Partial','Non-Compliant','Not Yet Tracked']" label="Status" variant="outlined" density="compact" hide-details clearable style="max-width:210px;" />
+                        <v-text-field v-model="educationSearch" placeholder="Search name, ID, or barangay" prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable style="max-width:300px;" />
+                        <v-spacer></v-spacer>
+                        <v-btn variant="tonal" color="primary" prepend-icon="mdi-refresh" density="compact" :loading="loadingEducationRecords" @click="loadEducationMonitoringRecords">Refresh</v-btn>
+                      </div>
+                      <v-card variant="outlined" style="border-radius:14px;overflow:hidden;border-color:#e0d8ff;">
+                        <v-card-text class="pa-0" style="overflow-x:auto;">
+                          <div v-if="loadingEducationRecords" style="padding:40px;text-align:center;">
+                            <v-progress-circular indeterminate color="deep-purple"></v-progress-circular>
+                          </div>
+                          <div v-else-if="filteredEducationRecords.length === 0" class="amvat-empty-wrap">
+                            <v-icon size="48" color="#c4b5fd">mdi-school-outline</v-icon>
+                            <div style="font-size:18px;font-weight:700;color:#6b46c1;margin-top:12px;">No education records found</div>
+                            <div style="font-size:13px;color:#9ca3af;">Adjust filters or select another month</div>
+                          </div>
+                          <table v-else class="hc-table">
+                            <thead>
+                              <tr>
+                                <th class="hc-th" style="text-align:left;min-width:220px;">Beneficiary</th>
+                                <th class="hc-th" style="text-align:left;min-width:140px;">Location</th>
+                                <th class="hc-th" style="text-align:left;min-width:170px;">School / Track</th>
+                                <th class="hc-th" style="text-align:center;">Days</th>
+                                <th class="hc-th" style="text-align:center;">Status</th>
+                                <th class="hc-th" style="text-align:center;width:60px;">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="record in filteredEducationRecords" :key="record.idNumber" class="hc-row">
+                                <td class="hc-td">
+                                  <div class="hc-name">{{ record.name }}</div>
+                                  <div class="hc-sub-info"><span class="hc-id-badge">{{ record.idNumber }}</span></div>
+                                </td>
+                                <td class="hc-td">
+                                  <div style="font-size:12px;font-weight:700;color:#374151;">{{ record.barangay || record.municipality || '-' }}</div>
+                                  <div style="font-size:11px;color:#9ca3af;">{{ record.province || record.region }}</div>
+                                </td>
+                                <td class="hc-td">
+                                  <div style="font-size:12px;font-weight:700;color:#1e1b4b;">{{ record.schoolName || 'Not encoded' }}</div>
+                                  <div style="font-size:11px;color:#7c3aed;">{{ record.educationType || 'No track selected' }}</div>
+                                </td>
+                                <td class="hc-td" style="text-align:center;font-weight:800;color:#7257b3;">{{ record.daysAttended || '-' }}</td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <v-chip size="small" label :color="record.status === 'Compliant' ? 'success' : record.status === 'Partial' ? 'warning' : record.status === 'Non-Compliant' ? 'error' : 'grey'" variant="tonal">{{ record.status }}</v-chip>
+                                </td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <v-btn size="x-small" variant="tonal" color="primary" icon="mdi-pencil" @click="openEducationDialog(record)" />
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </v-card-text>
+                      </v-card>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </div>
+            <!-- END EDUCATION MONITORING VIEW -->
+
+            <!-- BOOKLET COMPLIANCE VIEW -->
+            <div v-show="currentView === 'booklet-compliance'">
+              <v-row>
+                <v-col cols="12">
+                  <v-card class="glass-card">
+                    <v-card-title class="pa-3 px-6">
+                      <div class="d-flex align-center flex-wrap" style="width:100%;gap:12px;">
+                        <div>
+                          <span class="text-h6">Booklet Compliance Verification</span>
+                          <div class="text-caption text-grey">Monthly HATS, health, education document, and signature checklist</div>
+                        </div>
+                        <v-spacer></v-spacer>
+                        <v-chip color="success" variant="tonal" size="small">{{ bookletComplianceCounts.Complete || 0 }} complete</v-chip>
+                        <v-chip color="warning" variant="tonal" size="small">{{ bookletComplianceCounts.Incomplete || 0 }} incomplete</v-chip>
+                        <v-chip color="grey" variant="tonal" size="small">{{ bookletComplianceCounts['Not Yet Tracked'] || 0 }} not tracked</v-chip>
+                      </div>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text class="pa-4">
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+                        <v-select v-model="bookletComplianceMonth" :items="bookletMonths" label="Month" variant="outlined" density="compact" hide-details style="max-width:150px;" />
+                        <v-select v-if="isAdmin" v-model="bookletComplianceRegionFilter" :items="availableRegions" label="Region" variant="outlined" density="compact" hide-details clearable style="max-width:180px;" />
+                        <v-select v-model="bookletComplianceStatusFilter" :items="['Complete','Incomplete','Not Yet Tracked']" label="Status" variant="outlined" density="compact" hide-details clearable style="max-width:190px;" />
+                        <v-text-field v-model="bookletComplianceSearch" placeholder="Search name, ID, or barangay" prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable style="max-width:300px;" />
+                        <v-spacer></v-spacer>
+                        <v-btn variant="tonal" color="primary" prepend-icon="mdi-refresh" density="compact" :loading="loadingBookletComplianceRecords" @click="loadBookletComplianceRecords">Refresh</v-btn>
+                      </div>
+                      <v-card variant="outlined" style="border-radius:14px;overflow:hidden;border-color:#e0d8ff;">
+                        <v-card-text class="pa-0" style="overflow-x:auto;">
+                          <div v-if="loadingBookletComplianceRecords" style="padding:40px;text-align:center;">
+                            <v-progress-circular indeterminate color="deep-purple"></v-progress-circular>
+                          </div>
+                          <div v-else-if="filteredBookletComplianceRecords.length === 0" class="amvat-empty-wrap">
+                            <v-icon size="48" color="#c4b5fd">mdi-book-check-outline</v-icon>
+                            <div style="font-size:18px;font-weight:700;color:#6b46c1;margin-top:12px;">No booklet compliance records found</div>
+                            <div style="font-size:13px;color:#9ca3af;">Adjust filters or select another month</div>
+                          </div>
+                          <table v-else class="hc-table">
+                            <thead>
+                              <tr>
+                                <th class="hc-th" style="text-align:left;min-width:220px;">Beneficiary</th>
+                                <th class="hc-th" style="text-align:left;min-width:140px;">Location</th>
+                                <th class="hc-th" style="text-align:center;">Progress</th>
+                                <th class="hc-th" style="text-align:center;">Status</th>
+                                <th class="hc-th" style="text-align:center;width:60px;">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="record in filteredBookletComplianceRecords" :key="record.idNumber" class="hc-row">
+                                <td class="hc-td">
+                                  <div class="hc-name">{{ record.name }}</div>
+                                  <div class="hc-sub-info"><span class="hc-id-badge">{{ record.idNumber }}</span></div>
+                                </td>
+                                <td class="hc-td">
+                                  <div style="font-size:12px;font-weight:700;color:#374151;">{{ record.barangay || record.municipality || '-' }}</div>
+                                  <div style="font-size:11px;color:#9ca3af;">{{ record.province || record.region }}</div>
+                                </td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <div style="font-size:12px;font-weight:800;color:#7257b3;margin-bottom:4px;">{{ getBookletComplianceProgress(record) }} / 8</div>
+                                  <v-progress-linear :model-value="getBookletComplianceProgress(record) / 8 * 100" color="#7257b3" bg-color="#ede9fe" rounded height="6" />
+                                </td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <v-chip size="small" label :color="getBookletComplianceStatus(record) === 'Complete' ? 'success' : getBookletComplianceStatus(record) === 'Incomplete' ? 'warning' : 'grey'" variant="tonal">{{ getBookletComplianceStatus(record) }}</v-chip>
+                                </td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <v-btn size="x-small" variant="tonal" color="primary" icon="mdi-pencil" @click="openBookletComplianceDialog(record)" />
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </v-card-text>
+                      </v-card>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </div>
+            <!-- END BOOKLET COMPLIANCE VIEW -->
+
             <!-- ── HEALTHCARE VIEW ── -->
             <div v-show="currentView === 'healthcare'">
               <v-row>
@@ -5542,15 +5702,99 @@
                           </div>
                         </div>
 
-                        <!-- Education — honest gap, not fabricated data -->
+                        <!-- Education attendance compliance -->
                         <div class="cr-section">
                           <div class="cr-section-title">
                             <v-icon size="16" color="#7257b3">mdi-school-outline</v-icon>
                             Education Attendance Compliance
                           </div>
-                          <div class="cr-not-tracked">
-                            <v-icon size="16" color="#a78bfa">mdi-information-outline</v-icon>
-                            Not yet tracked in the system — school attendance monitoring is a planned module.
+                          <div v-if="!complianceAnalytics.education.tracked" class="cr-not-tracked">
+                            No education monitoring data yet.
+                          </div>
+                          <div v-else class="cr-bar-list">
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Compliant</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: Math.round((complianceAnalytics.education.compliant / Math.max(1, complianceAnalytics.education.totalRecords)) * 100) + '%',
+                                  background: '#16a34a'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.education.compliant }}</span>
+                            </div>
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Partial</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: Math.round((complianceAnalytics.education.partial / Math.max(1, complianceAnalytics.education.totalRecords)) * 100) + '%',
+                                  background: '#d97706'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.education.partial }}</span>
+                            </div>
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Non-Compliant</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: Math.round((complianceAnalytics.education.notCompliant / Math.max(1, complianceAnalytics.education.totalRecords)) * 100) + '%',
+                                  background: '#dc2626'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.education.notCompliant }}</span>
+                            </div>
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Not Yet Tracked</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: Math.round((complianceAnalytics.education.notTracked / Math.max(1, complianceAnalytics.education.totalRecords)) * 100) + '%',
+                                  background: '#a78bfa'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.education.notTracked }}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Monthly booklet document checklist -->
+                        <div class="cr-section">
+                          <div class="cr-section-title">
+                            <v-icon size="16" color="#7257b3">mdi-book-check-outline</v-icon>
+                            Monthly Booklet Document Checklist
+                          </div>
+                          <div v-if="!complianceAnalytics.checklist || !complianceAnalytics.checklist.tracked" class="cr-not-tracked">
+                            No booklet checklist data yet.
+                          </div>
+                          <div v-else class="cr-bar-list">
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Complete</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: Math.round((complianceAnalytics.checklist.complete / Math.max(1, complianceAnalytics.checklist.totalRecords)) * 100) + '%',
+                                  background: '#16a34a'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.checklist.complete }}</span>
+                            </div>
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Incomplete</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: Math.round((complianceAnalytics.checklist.incomplete / Math.max(1, complianceAnalytics.checklist.totalRecords)) * 100) + '%',
+                                  background: '#d97706'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.checklist.incomplete }}</span>
+                            </div>
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Not Yet Tracked</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: Math.round((complianceAnalytics.checklist.notTracked / Math.max(1, complianceAnalytics.checklist.totalRecords)) * 100) + '%',
+                                  background: '#a78bfa'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.checklist.notTracked }}</span>
+                            </div>
                           </div>
                         </div>
                       </template>
@@ -5702,6 +5946,98 @@
 
         </v-main>
       </template>
+
+      <!-- Education Monitoring Dialog -->
+      <v-dialog v-model="educationDialog" max-width="720">
+        <v-card rounded="xl" style="overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#7257b3,#d9468f);padding:20px 24px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;">
+                <v-icon color="white" size="24">mdi-school-outline</v-icon>
+              </div>
+              <div>
+                <div style="color:white;font-size:17px;font-weight:800;">Education Attendance</div>
+                <div style="color:rgba(255,255,255,0.75);font-size:12px;">{{ educationEditData.name }} - Month {{ educationEditData.month }}</div>
+              </div>
+            </div>
+          </div>
+          <v-card-text class="pa-5">
+            <v-row dense>
+              <v-col cols="12" md="7">
+                <v-text-field v-model="educationEditData.schoolName" label="School / Institution" variant="outlined" density="comfortable" prepend-inner-icon="mdi-domain" />
+              </v-col>
+              <v-col cols="12" md="5">
+                <v-select v-model="educationEditData.educationType" :items="['Formal School','ALS','TESDA','Not Enrolled','Other']" label="Education Type" variant="outlined" density="comfortable" prepend-inner-icon="mdi-book-education-outline" />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field v-model.number="educationEditData.daysAttended" label="Days Attended" type="number" min="0" variant="outlined" density="comfortable" prepend-inner-icon="mdi-calendar-check" />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field v-model="educationEditData.teacherSignatureDate" label="Teacher Signature Date" type="date" variant="outlined" density="comfortable" prepend-inner-icon="mdi-draw" />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-select v-model="educationEditData.status" :items="['Compliant','Partial','Non-Compliant','Not Yet Tracked']" label="Status" variant="outlined" density="comfortable" prepend-inner-icon="mdi-list-status" />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-checkbox v-model="educationEditData.returnCommitment" label="Return-to-school commitment signed" color="#7257b3" hide-details />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-checkbox v-model="educationEditData.caseWorkerConfirmed" label="Confirmed by case worker" color="#7257b3" hide-details />
+              </v-col>
+              <v-col cols="12">
+                <v-textarea v-model="educationEditData.notes" label="Notes / reason if not compliant" variant="outlined" rows="3" auto-grow />
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions class="px-5 pb-5">
+            <v-spacer></v-spacer>
+            <v-btn variant="outlined" color="grey" @click="educationDialog = false" :disabled="savingEducation">Cancel</v-btn>
+            <v-btn color="#7257b3" variant="flat" :loading="savingEducation" prepend-icon="mdi-content-save" @click="saveEducationMonitoringRecord">Save Education</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Booklet Compliance Dialog -->
+      <v-dialog v-model="bookletComplianceDialog" max-width="760">
+        <v-card rounded="xl" style="overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#7257b3,#d9468f);padding:20px 24px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;">
+                <v-icon color="white" size="24">mdi-book-check-outline</v-icon>
+              </div>
+              <div>
+                <div style="color:white;font-size:17px;font-weight:800;">Booklet Compliance Verification</div>
+                <div style="color:rgba(255,255,255,0.75);font-size:12px;">{{ bookletComplianceEditData.name }} - Month {{ bookletComplianceEditData.month }}</div>
+              </div>
+            </div>
+          </div>
+          <v-card-text class="pa-5">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px 16px;">
+              <v-checkbox v-model="bookletComplianceEditData.hats" label="HATS attendance verified" color="#7257b3" hide-details />
+              <v-checkbox v-model="bookletComplianceEditData.medicalCertificate" label="Medical certificate / prescription" color="#7257b3" hide-details />
+              <v-checkbox v-model="bookletComplianceEditData.pregnancyTest" label="Pregnancy test document" color="#7257b3" hide-details />
+              <v-checkbox v-model="bookletComplianceEditData.certificateEnrollment" label="Certificate of enrollment" color="#7257b3" hide-details />
+              <v-checkbox v-model="bookletComplianceEditData.bookletSignedByAdvisor" label="Booklet signed by advisor" color="#7257b3" hide-details />
+              <v-checkbox v-model="bookletComplianceEditData.certificateAttendance" label="Certificate of attendance" color="#7257b3" hide-details />
+              <v-checkbox v-model="bookletComplianceEditData.beneficiarySignature" label="Beneficiary signature" color="#7257b3" hide-details />
+              <v-checkbox v-model="bookletComplianceEditData.socialWorkerSignature" label="Social worker signature" color="#7257b3" hide-details />
+            </div>
+            <v-row dense class="mt-4">
+              <v-col cols="12" md="5">
+                <v-select v-model="bookletComplianceEditData.verificationStatus" :items="['Complete','Incomplete','For Follow-up','Not Yet Tracked']" label="Verification Status" variant="outlined" density="comfortable" prepend-inner-icon="mdi-list-status" />
+              </v-col>
+              <v-col cols="12" md="7">
+                <v-textarea v-model="bookletComplianceEditData.observations" label="Important observations / missing requirements" variant="outlined" rows="3" auto-grow />
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions class="px-5 pb-5">
+            <v-spacer></v-spacer>
+            <v-btn variant="outlined" color="grey" @click="bookletComplianceDialog = false" :disabled="savingBookletCompliance">Cancel</v-btn>
+            <v-btn color="#7257b3" variant="flat" :loading="savingBookletCompliance" prepend-icon="mdi-content-save" @click="saveBookletComplianceRecord">Save Compliance</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <!-- Healthcare Edit Dialog -->
       <v-dialog v-model="healthcareDialog" max-width="680" persistent>
