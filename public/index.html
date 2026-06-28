@@ -5351,6 +5351,145 @@
             </div>
             <!-- END BOOKLET COMPLIANCE VIEW -->
 
+            <!-- ── JOURNAL & WORKER NOTES VIEW ── -->
+            <div v-show="currentView === 'journal-notes'">
+              <v-row>
+                <v-col cols="12">
+                  <v-card class="glass-card">
+                    <v-card-title class="pa-3 px-6">
+                      <div class="d-flex align-center flex-wrap" style="width:100%;gap:12px;">
+                        <div>
+                          <span class="text-h6">Journal &amp; Worker Notes</span>
+                          <div class="text-caption text-grey">Session notes, "My Journal" reflections, and worker assessment per the booklet</div>
+                        </div>
+                        <v-spacer></v-spacer>
+                      </div>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text class="pa-4">
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+                        <v-select v-model="journalMonth" :items="bookletMonths" label="Month" variant="outlined" density="compact" hide-details style="max-width:150px;" />
+                        <v-select v-if="isAdmin" v-model="journalRegionFilter" :items="availableRegions" label="Region" variant="outlined" density="compact" hide-details clearable style="max-width:180px;" />
+                        <v-text-field v-model="journalSearch" placeholder="Search name, ID, or barangay" prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable style="max-width:300px;" />
+                        <v-spacer></v-spacer>
+                        <v-btn variant="tonal" color="primary" prepend-icon="mdi-refresh" density="compact" :loading="loadingJournalRecords" @click="loadJournalRecords">Refresh</v-btn>
+                      </div>
+                      <v-card variant="outlined" style="border-radius:14px;overflow:hidden;border-color:#e0d8ff;">
+                        <v-card-text class="pa-0" style="overflow-x:auto;">
+                          <div v-if="loadingJournalRecords" style="padding:40px;text-align:center;">
+                            <v-progress-circular indeterminate color="deep-purple"></v-progress-circular>
+                          </div>
+                          <div v-else-if="filteredJournalRecords.length === 0" class="amvat-empty-wrap">
+                            <v-icon size="48" color="#c4b5fd">mdi-notebook-heart-outline</v-icon>
+                            <div style="font-size:18px;font-weight:700;color:#6b46c1;margin-top:12px;">No beneficiaries found</div>
+                          </div>
+                          <table v-else class="hc-table">
+                            <thead>
+                              <tr>
+                                <th class="hc-th" style="text-align:left;min-width:220px;">Beneficiary</th>
+                                <th class="hc-th" style="text-align:left;min-width:140px;">Location</th>
+                                <th class="hc-th" style="text-align:center;">Entry Status</th>
+                                <th class="hc-th" style="text-align:left;min-width:150px;">Worker</th>
+                                <th class="hc-th" style="text-align:center;width:60px;">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="record in filteredJournalRecords" :key="record.idNumber" class="hc-row">
+                                <td class="hc-td">
+                                  <div class="hc-name">{{ record.name }}</div>
+                                  <div class="hc-sub-info"><span class="hc-id-badge">{{ record.idNumber }}</span></div>
+                                </td>
+                                <td class="hc-td">
+                                  <div style="font-size:12px;font-weight:700;color:#374151;">{{ record.barangay || record.municipality || '-' }}</div>
+                                  <div style="font-size:11px;color:#9ca3af;">{{ record.province || record.region }}</div>
+                                </td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <v-chip size="small" label :color="record.hasEntry ? 'success' : 'grey'" variant="tonal">
+                                    {{ record.hasEntry ? 'Logged' : 'Not Yet Logged' }}
+                                  </v-chip>
+                                </td>
+                                <td class="hc-td" style="font-size:12px;color:#4b5563;">{{ record.workerName || '—' }}</td>
+                                <td class="hc-td" style="text-align:center;">
+                                  <v-btn size="x-small" variant="tonal" color="primary" icon="mdi-pencil" @click="openJournalDialog(record)" />
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </v-card-text>
+                      </v-card>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </div>
+            <!-- END JOURNAL & WORKER NOTES VIEW -->
+
+            <!-- ── CONTACT CIRCLE VIEW ── -->
+            <div v-show="currentView === 'contact-circle'">
+              <v-row>
+                <v-col cols="12">
+                  <v-card class="glass-card">
+                    <v-card-title class="pa-3 px-6">
+                      <div class="d-flex align-center flex-wrap" style="width:100%;gap:12px;">
+                        <div>
+                          <span class="text-h6">My Contact Circle</span>
+                          <div class="text-caption text-grey">Support network contacts — up to 8 per beneficiary</div>
+                        </div>
+                        <v-spacer></v-spacer>
+                        <div style="width:260px;">
+                          <v-text-field v-model="contactCircleSearch" placeholder="Search name, ID, or barangay"
+                            prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable />
+                        </div>
+                        <v-btn variant="tonal" color="primary" prepend-icon="mdi-refresh" density="compact"
+                          :loading="loadingContactCircle" @click="loadContactCircleRecords">Refresh</v-btn>
+                      </div>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text class="pa-4">
+                      <div v-if="loadingContactCircle" style="padding:40px;text-align:center;">
+                        <v-progress-circular indeterminate color="deep-purple"></v-progress-circular>
+                      </div>
+                      <div v-else-if="filteredContactCircleRecords.length === 0" class="amvat-empty-wrap">
+                        <v-icon size="48" color="#c4b5fd">mdi-account-group-outline</v-icon>
+                        <div style="font-size:18px;font-weight:700;color:#6b46c1;margin-top:12px;">No beneficiaries found</div>
+                      </div>
+                      <div v-else class="amvat-tbl-wrap">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Beneficiary</th>
+                              <th>Location</th>
+                              <th>Contacts on File</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="rec in filteredContactCircleRecords" :key="rec.idNumber">
+                              <td style="padding:10px 18px;font-weight:600;color:#1e1b4b;">
+                                {{ rec.beneficiaryName }}
+                                <div style="font-size:11px;color:#7c3aed;font-weight:500;">{{ rec.idNumber }}</div>
+                              </td>
+                              <td style="padding:10px 16px;font-size:12px;color:#4b5563;">{{ rec.barangay || rec.region || '—' }}</td>
+                              <td style="padding:10px 16px;">
+                                <span style="font-size:12px;font-weight:700;color:#7257b3;">{{ rec.contactsFilled }} / 8</span>
+                              </td>
+                              <td style="padding:10px 16px;">
+                                <v-btn size="small" variant="tonal" color="deep-purple"
+                                  @click="openContactCircleDialog(rec.idNumber, rec.beneficiaryName)">
+                                  {{ rec.contactsFilled > 0 ? 'Edit' : 'Add' }}
+                                </v-btn>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </div>
+            <!-- END CONTACT CIRCLE VIEW ── -->
+
             <!-- ── HEALTHCARE VIEW ── -->
             <div v-show="currentView === 'healthcare'">
               <v-row>
@@ -6051,6 +6190,114 @@
             <v-spacer></v-spacer>
             <v-btn variant="outlined" color="grey" @click="bookletComplianceDialog = false" :disabled="savingBookletCompliance">Cancel</v-btn>
             <v-btn color="#7257b3" variant="flat" :loading="savingBookletCompliance" prepend-icon="mdi-content-save" @click="saveBookletComplianceRecord">Save Compliance</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Journal & Worker Notes Dialog -->
+      <v-dialog v-model="journalDialog" max-width="760" scrollable>
+        <v-card rounded="xl" style="overflow:hidden;" v-if="journalEditRecord">
+          <div style="background:linear-gradient(135deg, #7257b3 0%, #764ba2 100%);padding:20px 24px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;">
+                <v-icon color="white" size="24">mdi-notebook-heart-outline</v-icon>
+              </div>
+              <div>
+                <div style="color:white;font-size:17px;font-weight:800;">{{ journalEditRecord.name }}</div>
+                <div style="color:rgba(255,255,255,0.75);font-size:12px;">Month {{ journalEditRecord.month }} — Journal &amp; Worker Notes</div>
+              </div>
+            </div>
+          </div>
+          <v-card-text class="pa-5" style="max-height:65vh;">
+            <v-text-field v-model="journalEditRecord.entryDate" type="date" label="Entry Date" variant="outlined"
+              density="comfortable" class="mb-4" style="max-width:220px;" />
+
+            <div class="cr-section-title" style="margin-bottom:8px;">
+              <v-icon size="16" color="#7257b3">mdi-calendar-heart</v-icon>
+              Mga Notes at Natutunan mula sa Healing &amp; Transformation Session
+            </div>
+            <v-textarea v-model="journalEditRecord.sessionNotes" variant="outlined" rows="3" auto-grow
+              placeholder="Notes and learnings from this month's HATS session..." class="mb-4" />
+
+            <v-divider class="mb-4"></v-divider>
+
+            <div class="cr-section-title" style="margin-bottom:8px;">
+              <v-icon size="16" color="#7257b3">mdi-book-open-page-variant-outline</v-icon>
+              My Journal
+            </div>
+            <v-textarea v-model="journalEditRecord.journalThoughts" variant="outlined" rows="2" auto-grow
+              label="Ang iniisip ko ngayon ay..." class="mb-3" />
+            <v-textarea v-model="journalEditRecord.journalFeelings" variant="outlined" rows="2" auto-grow
+              label="Ang nararamdaman ko ngayon ay..." class="mb-3" />
+            <v-textarea v-model="journalEditRecord.journalHope" variant="outlined" rows="2" auto-grow
+              label="Ang nagbibigay ng pag-asa para sa aking sarili at sa aking anak ay..." class="mb-3" />
+            <v-textarea v-model="journalEditRecord.journalEEG" variant="outlined" rows="2" auto-grow
+              label="Ngayon buwan, ginamit ko ang EEG sa mga sumusunod:" class="mb-4" />
+
+            <v-divider class="mb-4"></v-divider>
+
+            <div class="cr-section-title" style="margin-bottom:8px;">
+              <v-icon size="16" color="#7257b3">mdi-account-tie-outline</v-icon>
+              Assessment of Worker
+            </div>
+            <v-textarea v-model="journalEditRecord.workerObservations" variant="outlined" rows="2" auto-grow
+              label="Mga napansin na pagbabago sa benepisyaryo" class="mb-3" />
+            <v-textarea v-model="journalEditRecord.workerAgreements" variant="outlined" rows="2" auto-grow
+              label="Mga agreements kasama ang benepisyaryo" class="mb-3" />
+            <v-text-field v-model="journalEditRecord.workerName" label="Pangalan ng Worker (Worker Name)"
+              variant="outlined" density="comfortable" prepend-inner-icon="mdi-draw" />
+          </v-card-text>
+          <v-card-actions class="px-5 pb-5">
+            <v-spacer></v-spacer>
+            <v-btn variant="outlined" color="grey" @click="journalDialog = false" :disabled="savingJournal">Cancel</v-btn>
+            <v-btn color="#7257b3" variant="flat" :loading="savingJournal" prepend-icon="mdi-content-save"
+              @click="saveJournalRecord">Save Entry</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Contact Circle Dialog -->
+      <v-dialog v-model="contactCircleDialog" max-width="900px" :fullscreen="isMobile" scrollable>
+        <v-card class="glass-card" v-if="contactCircleEditRecord">
+          <v-card-title class="pa-6 d-flex align-center"
+            style="background: linear-gradient(135deg, #7257b3 0%, #764ba2 100%); color: white;">
+            <v-icon color="white" class="mr-2">mdi-account-group-outline</v-icon>
+            <div>
+              <div class="text-h6">{{ contactCircleEditRecord.beneficiaryName }}</div>
+              <div class="text-caption">{{ contactCircleEditRecord.idNumber }} — My Contact Circle</div>
+            </div>
+            <v-spacer></v-spacer>
+            <v-btn icon color="white" @click="contactCircleDialog = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-text class="pa-6" style="max-height: 70vh; overflow-y: auto;">
+            <div class="text-caption text-medium-emphasis mb-4">
+              Contact details for people who may be reached on behalf of the beneficiary.
+            </div>
+            <v-row>
+              <v-col v-for="(contact, idx) in contactCircleEditRecord.contacts" :key="idx" cols="12" sm="6" md="4">
+                <v-card variant="outlined" class="pa-3">
+                  <div class="font-weight-bold mb-2">Contact {{ idx + 1 }}</div>
+                  <v-text-field v-model="contact.name" label="Name" variant="outlined" density="compact"
+                    class="mb-2" hide-details prepend-inner-icon="mdi-account-outline" />
+                  <v-text-field v-model="contact.office" label="Office" variant="outlined" density="compact"
+                    class="mb-2" hide-details prepend-inner-icon="mdi-domain" />
+                  <v-text-field v-model="contact.number" label="Contact Number" variant="outlined" density="compact"
+                    class="mb-2" hide-details prepend-inner-icon="mdi-phone-outline" />
+                  <v-text-field v-model="contact.email" label="Email" variant="outlined" density="compact"
+                    class="mb-2" hide-details prepend-inner-icon="mdi-email-outline" />
+                  <v-text-field v-model="contact.address" label="Address" variant="outlined" density="compact"
+                    hide-details prepend-inner-icon="mdi-map-marker-outline" />
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions class="pa-6 pt-0">
+            <v-spacer></v-spacer>
+            <v-btn variant="text" @click="contactCircleDialog = false" :disabled="savingContactCircle">Cancel</v-btn>
+            <v-btn color="#7257b3" variant="flat" :loading="savingContactCircle" prepend-icon="mdi-content-save"
+              @click="saveContactCircleRecord">Save Contact Circle</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>

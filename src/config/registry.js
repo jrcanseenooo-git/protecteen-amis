@@ -8,6 +8,8 @@ const healthcareController = require("../controllers/healthcareController");
 const complianceController = require("../controllers/complianceController");
 const exitController = require("../controllers/exitController");
 const bookletMonitoringController = require("../controllers/bookletMonitoringController");
+const contactCircleController = require("../controllers/contactCircleController");
+const journalController = require("../controllers/journalController");
 
 const READ_ONLY_FUNCTIONS = new Set([
   "checkSession",
@@ -15,9 +17,11 @@ const READ_ONLY_FUNCTIONS = new Set([
   "getAllAMVATRecords",
   "getAllSessionAttendance",
   "getAllUsers",
+  "getAllContactCircleSummaries",
   "getBarangayList",
   "getBookletComplianceRecords",
   "getComplianceAnalytics",
+  "getContactCircle",
   "getDashboardStats",
   "getDashboardStatsByBarangay",
   "getDataChangeTimestamp",
@@ -28,6 +32,7 @@ const READ_ONLY_FUNCTIONS = new Set([
   "getExitRecords",
   "getGranteeRecords",
   "getHealthcareRecords",
+  "getJournalWorkerNotes",
   "getPayoutRecords",
   "getPTResults",
   "getRegionsList",
@@ -69,13 +74,18 @@ const APPS_SCRIPT_FALLBACK_FUNCTIONS = new Set([
 // other function). Adding a name here never changes behavior for any
 // function NOT in this set.
 const LOCAL_ONLY_FUNCTIONS = new Set([
+  "getAllContactCircleSummaries",
   "getBookletComplianceRecords",
   "getComplianceAnalytics",
+  "getContactCircle",
   "getEducationMonitoringRecords",
   "getExitRecords",
+  "getJournalWorkerNotes",
   "recordBeneficiaryExit",
   "saveBookletComplianceRecord",
+  "saveContactCircle",
   "saveEducationMonitoringRecord",
+  "saveJournalWorkerNotes",
 ]);
 
 const registry = {
@@ -88,6 +98,8 @@ const registry = {
   ...dashboardController,
   ...complianceController,
   ...exitController,
+  ...contactCircleController,
+  ...journalController,
   ...bookletMonitoringController,
   // Still pending - see README.md migration checklist:
   // getDashboardStatsByBarangay, saveSessionAttendance,
@@ -95,7 +107,7 @@ const registry = {
   // saveSessionTestScore, saveBulkSessionTestScores,
   // syncAttendanceFromTestScores, saveAllEnrolledData,
   // getAllAMVATRecords, searchAMVATProfiles, getExistingAMVAT,
-  // submitAMVATToQuarter, updateAMVATProfile, getHealthcareRecords,
+  // submitAMVATToQuarter, updateAMVATProfile,
   // getPayoutRecords, savePayout, getGranteeRecords, saveGrantee,
   // deleteGrantee, getPTResults, savePTResult, savePTResultBulk
 };

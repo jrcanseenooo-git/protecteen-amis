@@ -366,6 +366,8 @@
           { title: 'Education', icon: 'mdi-school-outline', view: 'education-monitoring', roles: ['admin', 'case_manager'] },
           { title: 'Healthcare', icon: 'mdi-hospital-box-outline', view: 'healthcare', roles: ['admin', 'case_manager'] },
           { title: 'Booklet Compliance', icon: 'mdi-book-check-outline', view: 'booklet-compliance', roles: ['admin', 'case_manager'] },
+          { title: 'Journal & Worker Notes', icon: 'mdi-notebook-heart-outline', view: 'journal-notes', roles: ['admin', 'case_manager'] },
+          { title: 'Contact Circle', icon: 'mdi-account-group-outline', view: 'contact-circle', roles: ['admin', 'case_manager'] },
           { section: 'System', roles: ['admin', 'case_manager'] },
           {
             title: 'Reports',
@@ -783,6 +785,20 @@
         savingBookletCompliance: false,
         bookletComplianceEditRecord: null,
         bookletComplianceEditData: {},
+        journalMonth: 1,
+        journalRegionFilter: null,
+        journalSearch: "",
+        journalRecords: [],
+        loadingJournalRecords: false,
+        journalDialog: false,
+        savingJournal: false,
+        journalEditRecord: null,
+        contactCircleRecords: [],
+        loadingContactCircle: false,
+        contactCircleSearch: "",
+        contactCircleDialog: false,
+        savingContactCircle: false,
+        contactCircleEditRecord: null,
         healthcareSearch: "",
         healthcareRegionFilter: null,
         healthcareProvinceFilter: null,
@@ -1642,6 +1658,34 @@
         return counts;
       },
 
+      filteredJournalRecords() {
+        let list = this.journalRecords || [];
+        if (this.journalSearch && this.journalSearch.trim().length > 0) {
+          const q = this.journalSearch.toLowerCase().trim();
+          list = list.filter(
+            (r) =>
+              (r.name || "").toLowerCase().includes(q) ||
+              (r.idNumber || "").toLowerCase().includes(q) ||
+              (r.barangay || "").toLowerCase().includes(q),
+          );
+        }
+        return list;
+      },
+
+      filteredContactCircleRecords() {
+        let list = this.contactCircleRecords || [];
+        if (this.contactCircleSearch && this.contactCircleSearch.trim().length > 0) {
+          const q = this.contactCircleSearch.toLowerCase().trim();
+          list = list.filter(
+            (r) =>
+              (r.beneficiaryName || "").toLowerCase().includes(q) ||
+              (r.idNumber || "").toLowerCase().includes(q) ||
+              (r.barangay || "").toLowerCase().includes(q),
+          );
+        }
+        return list;
+      },
+
       amvatComparisonSourceRecords() {
         if (this.amvatCompareMode !== "selected") {
           return this.filteredAmvatTableRecords;
@@ -2460,6 +2504,12 @@
       bookletComplianceRegionFilter() {
         if (this.currentView === "booklet-compliance") this.loadBookletComplianceRecords();
       },
+      journalMonth() {
+        if (this.currentView === "journal-notes") this.loadJournalRecords();
+      },
+      journalRegionFilter() {
+        if (this.currentView === "journal-notes") this.loadJournalRecords();
+      },
 
       selectedBarangay(val) {
         this.loadBarangayStats(val);
@@ -2619,6 +2669,10 @@
         } else if (newView === "delisted") {
           this.loadExitRecords();
           if (this.enrolledList.length === 0) this.loadEnrolledList(false);
+        } else if (newView === "journal-notes") {
+          this.loadJournalRecords();
+        } else if (newView === "contact-circle") {
+          this.loadContactCircleRecords();
         } else if (newView === "manage-users") {
           this.loadUsersList();
           this.startUsersAutoRefresh();
@@ -7443,6 +7497,135 @@
             this.showSnackbar("Error: " + err, "error");
           })
           .saveBookletComplianceRecord(this.bookletComplianceEditData, this.getSessionData());
+      },
+
+      loadJournalRecords() {
+        this.loadingJournalRecords = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.loadingJournalRecords = false;
+            if (result.success) {
+              this.journalRecords = result.records || [];
+            } else {
+              this.showSnackbar(result.message || "Error loading journal records", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingJournalRecords = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .getJournalWorkerNotes(this.journalMonth, this.journalRegionFilter, this.getSessionData());
+      },
+
+      openJournalDialog(record) {
+        this.journalEditRecord = { ...record, month: this.journalMonth };
+        this.journalDialog = true;
+      },
+
+      saveJournalRecord(confirmed = false) {
+        if (!this.journalEditRecord || !this.journalEditRecord.idNumber) return;
+        if (!confirmed) {
+          this.requestActionConfirm(
+            {
+              title: "Save Journal & Worker Notes?",
+              subtitle: `Month ${this.journalEditRecord.month}`,
+              message: "This will update the beneficiary's session notes, journal entry, and worker assessment for this month.",
+              confirmText: "Save Entry",
+              confirmIcon: "mdi-content-save",
+            },
+            () => this.saveJournalRecord(true),
+          );
+          return;
+        }
+        this.savingJournal = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.savingJournal = false;
+            if (result.success) {
+              this.showSnackbar(result.message || "Saved.", "success");
+              this.journalDialog = false;
+              this.loadJournalRecords();
+            } else {
+              this.showSnackbar(result.message || "Failed to save.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.savingJournal = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .saveJournalWorkerNotes(this.journalEditRecord, this.getSessionData());
+      },
+
+      loadContactCircleRecords() {
+        this.loadingContactCircle = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.loadingContactCircle = false;
+            if (result.success) {
+              this.contactCircleRecords = result.records || [];
+            } else {
+              this.showSnackbar(result.message || "Error loading contact circle records", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingContactCircle = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .getAllContactCircleSummaries(this.getSessionData());
+      },
+
+      openContactCircleDialog(idNumber, beneficiaryName) {
+        this.savingContactCircle = false;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            if (result.success) {
+              this.contactCircleEditRecord = result.record;
+              this.contactCircleEditRecord.beneficiaryName = this.contactCircleEditRecord.beneficiaryName || beneficiaryName;
+              this.contactCircleDialog = true;
+            } else {
+              this.showSnackbar(result.message || "Error loading record", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .getContactCircle(idNumber, this.getSessionData());
+      },
+
+      saveContactCircleRecord(confirmed = false) {
+        if (!this.contactCircleEditRecord || !this.contactCircleEditRecord.idNumber) return;
+        if (!confirmed) {
+          this.confirmWriteAction(
+            {
+              title: "Save Contact Circle?",
+              subtitle: "This updates the beneficiary's support network contacts.",
+            },
+            () => this.saveContactCircleRecord(true),
+          );
+          return;
+        }
+        this.savingContactCircle = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.savingContactCircle = false;
+            if (result.success) {
+              this.showSnackbar(result.message, "success");
+              this.contactCircleDialog = false;
+              this.loadContactCircleRecords();
+            } else {
+              this.showSnackbar(result.message, "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.savingContactCircle = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .saveContactCircle(this.contactCircleEditRecord, this.getSessionData());
       },
 
       openExitDialog(beneficiary) {

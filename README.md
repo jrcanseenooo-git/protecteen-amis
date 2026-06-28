@@ -213,10 +213,20 @@ getAllUsers, unlockAccount, autoUnlockExpiredAccounts, deleteUser,
 updatePassword, getRegionsList, getBarangayList, getActivityLogs,
 getDataChangeTimestamp, generateReport, searchNames, searchRecordByName,
 getEnrolledListCached, getEnrolledRecordWithInfo, updateBasicInfo,
-saveEnrolledInfo, saveHealthcareRecord, submit, getDashboardStats.
+saveEnrolledInfo, saveHealthcareRecord, getHealthcareRecords, submit,
+getDashboardStats.
 
 That covers login, signup/admin, viewing and editing a beneficiary
-record end-to-end, the main dashboard, and the report generator.
+record end-to-end, the main dashboard, the report generator, and the
+full healthcare module (both save and list).
+
+**Also done — local-only, no Code.gs counterpart (see LOCAL_ONLY_FUNCTIONS
+in `src/config/registry.js`):** the Compliance/Conditionality dashboard
+(`getComplianceAnalytics`), the Delisted/Exit module (`getExitRecords`,
+`recordBeneficiaryExit`), Education monitoring and Booklet compliance
+verification, and Journal & Worker Notes / Contact Circle — digitizing
+the remaining booklet sections (My Contact Circle, Notes/My Journal,
+Assessment of Worker).
 
 **Still pending** — same porting pattern each time (read the Code.gs
 function, translate the SpreadsheetApp calls to the `sheets`/`Range`
@@ -233,9 +243,6 @@ syncAttendanceFromTestScores, saveAllEnrolledData
 
 **AMVAT:** getAllAMVATRecords, searchAMVATProfiles, getExistingAMVAT,
 submitAMVATToQuarter, updateAMVATProfile
-
-**Healthcare (records list):** getHealthcareRecords (saveHealthcareRecord
-is already done)
 
 **Payouts & grantees:** getPayoutRecords, savePayout,
 getGranteeRecords, saveGrantee, deleteGrantee
