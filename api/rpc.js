@@ -1,4 +1,5 @@
 const { handleRpcRequest } = require("../src/rpcRouter");
+const { checkAndRecordAttempt, getClientIp } = require("../src/services/rateLimiter");
 
 async function readJsonBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
@@ -37,6 +38,25 @@ module.exports = async (req, res) => {
   } catch (e) {
     res.statusCode = 400;
     res.end(JSON.stringify({ success: false, message: "Invalid request body" }));
+    return;
+  }
+
+  // Rate limit auth-sensitive calls only (login/signup/updatePassword) —
+  // per SECURITY_DEPLOYMENT_RULES.md, 5 attempts/minute/IP combined.
+  // checkAndRecordAttempt is a no-op (always allowed) for every other
+  // function, so this can never affect normal app usage.
+  const clientIp = getClientIp(req);
+  const rateLimitResult = checkAndRecordAttempt(clientIp, payload && payload.fn);
+  if (!rateLimitResult.allowed) {
+    console.error("Rate limit exceeded", { fn: payload && payload.fn, ip: clientIp });
+    res.statusCode = 429;
+    res.setHeader("Retry-After", String(rateLimitResult.retryAfterSeconds));
+    res.end(
+      JSON.stringify({
+        success: false,
+        message: "Too many attempts. Please try again in a minute.",
+      }),
+    );
     return;
   }
 

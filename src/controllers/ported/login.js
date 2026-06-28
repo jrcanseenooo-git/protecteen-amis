@@ -100,13 +100,13 @@ async function login(data) {
         } else {
           await updateFailedLoginAttempts(usersSheet, i + 1);
           await logActivity("LOGIN_FAILED", { email: data.email, reason: "Invalid password" });
-          return JSON.stringify({ success: false, message: "Invalid password" });
+          return JSON.stringify({ success: false, message: "Invalid email or password." });
         }
       }
     }
 
     await logActivity("LOGIN_FAILED", { email: data.email, reason: "Email not found" });
-    return JSON.stringify({ success: false, message: "Email not found" });
+    return JSON.stringify({ success: false, message: "Invalid email or password." });
   } catch (error) {
     return JSON.stringify(safeErrorResponse("login failed", error));
   }
