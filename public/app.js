@@ -7460,11 +7460,33 @@
         this.exitForm.beneficiaryName = match ? match.name : "";
       },
 
-      submitBeneficiaryExit() {
+      submitBeneficiaryExit(confirmed = false) {
         if (!this.exitForm.idNumber || !this.exitForm.exitType) {
           this.showSnackbar("Beneficiary and exit type are required.", "error");
           return;
         }
+
+        if (!confirmed) {
+          const name = this.exitForm.beneficiaryName || "this beneficiary";
+          const severityColor =
+            this.exitForm.exitType === "Graduation"
+              ? { color: "linear-gradient(135deg,#16a34a 0%,#15803d 100%)", buttonColor: "#16a34a" }
+              : this.exitForm.exitType === "Voluntary Exit"
+              ? { color: "linear-gradient(135deg,#d97706 0%,#b45309 100%)", buttonColor: "#d97706" }
+              : { color: "linear-gradient(135deg,#dc2626 0%,#991b1b 100%)", buttonColor: "#dc2626" };
+          this.confirmWriteAction(
+            {
+              title: `Confirm ${this.exitForm.exitType}?`,
+              subtitle: `This will mark ${name} as "${this.exitForm.exitType}" and remove them from the active program roster. This action affects grant eligibility going forward.`,
+              icon: "mdi-account-remove-outline",
+              confirmText: `Yes, Record ${this.exitForm.exitType}`,
+              ...severityColor,
+            },
+            () => this.submitBeneficiaryExit(true),
+          );
+          return;
+        }
+
         this.savingExit = true;
         google.script.run
           .withSuccessHandler((response) => {

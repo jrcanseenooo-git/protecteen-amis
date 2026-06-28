@@ -162,9 +162,6 @@ async function getComplianceAnalytics(regionFilter) {
     sessions,
     delisting,
     healthcare,
-    // Honest placeholder — there is no education attendance module yet
-    // (see Phase 3). Showing this explicitly rather than fabricating a
-    // number is the whole point of marking it `tracked: false`.
     education: { tracked: true, ...booklet.education },
     checklist: { tracked: true, ...booklet.checklist },
   };
