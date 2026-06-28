@@ -346,7 +346,7 @@
             icon: 'mdi-currency-php',
             roles: ['admin', 'case_manager'],
             children: [
-              { title: 'For Payout', icon: 'mdi-cash-check', view: 'payouts', roles: ['admin', 'case_manager'] },
+              { title: 'For Payout', icon: 'mdi-cash-check', view: 'payouts', roles: ['admin', 'case_manager'], comingSoon: true },
               { title: 'Authorized Grantees', icon: 'mdi-account-star-outline', view: 'grantees', roles: ['admin', 'case_manager'] },
               { title: 'Payout Records', icon: 'mdi-chart-line', view: 'income-records', roles: ['admin', 'case_manager'], comingSoon: true },
             ],
@@ -455,6 +455,9 @@
         granteeViewRecord: null,
         loadingGrantees: false,
         granteeSearch: "",
+        granteePage: 1,
+        granteePageSize: 15,
+        granteeStatusFilter: null,
         granteeDialog: false,
         editingGrantee: null,
         granteeFormData: {
@@ -2193,6 +2196,13 @@
           );
         }
 
+        // Status filter (assigned / unassigned)
+        if (this.granteeStatusFilter === 'assigned') {
+          records = records.filter(r => !!r.grantee_name);
+        } else if (this.granteeStatusFilter === 'unassigned') {
+          records = records.filter(r => !r.grantee_name);
+        }
+
         // Text search
         if (this.granteeSearch) {
           const search = this.granteeSearch.toLowerCase();
@@ -2204,6 +2214,15 @@
         }
 
         return records;
+      },
+
+      paginatedGranteeRecords() {
+        const start = (this.granteePage - 1) * this.granteePageSize;
+        return this.filteredGranteeRecords.slice(start, start + this.granteePageSize);
+      },
+
+      granteePageCount() {
+        return Math.max(1, Math.ceil(this.filteredGranteeRecords.length / this.granteePageSize));
       },
 
       granteeRegionOptions() {
@@ -2535,6 +2554,11 @@
       },
       journalSearch() { this.journalPage = 1; },
       contactCircleSearch() { this.contactCirclePage = 1; },
+      granteeSearch() { this.granteePage = 1; },
+      granteeRegionFilter() { this.granteePage = 1; },
+      granteeRelFilter() { this.granteePage = 1; },
+      granteeBarangayFilter() { this.granteePage = 1; },
+      granteeStatusFilter() { this.granteePage = 1; },
 
       selectedBarangay(val) {
         this.loadBarangayStats(val);
