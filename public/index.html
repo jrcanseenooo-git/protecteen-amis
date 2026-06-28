@@ -3494,7 +3494,7 @@
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  <tr v-for="row in amvatComparisonRows.slice(0, 6)" :key="row.key">
+                                  <tr v-for="row in paginatedAmvatComparisonRows" :key="row.key">
                                     <td>
                                       <div class="amvat-compare-person">{{ row.name }}</div>
                                       <div class="amvat-compare-address">{{ row.idNumber || row.address }}</div>
@@ -3507,6 +3507,25 @@
                                   </tr>
                                 </tbody>
                               </table>
+
+                              <div class="amvat-compare-table-footer">
+                                <span class="amvat-compare-table-footer-info">
+                                  Showing
+                                  {{ amvatComparisonRows.length === 0 ? 0 : (amvatComparePage - 1) * amvatComparePageSize + 1 }}-{{
+                                    Math.min(amvatComparePage * amvatComparePageSize, amvatComparisonRows.length)
+                                  }}
+                                  of {{ amvatComparisonRows.length }}
+                                </span>
+
+                                <v-pagination v-model="amvatComparePage"
+                                  :length="Math.ceil(amvatComparisonRows.length / amvatComparePageSize)"
+                                  :total-visible="5" density="compact" color="deep-purple"></v-pagination>
+
+                                <v-select v-model="amvatComparePageSize" :items="[10, 15, 25, 50]" label="Rows"
+                                  variant="outlined" density="compact" hide-details style="max-width:85px;"
+                                  @update:modelValue="amvatComparePage = 1">
+                                </v-select>
+                              </div>
                             </div>
                           </template>
                         </div>
