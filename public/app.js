@@ -749,6 +749,17 @@
         // Healthcare module
         healthcareRecords: [],
         loadingHealthcareRecords: false,
+        complianceAnalytics: null,
+        loadingComplianceAnalytics: false,
+        complianceRegionFilter: null,
+        exitRecords: [],
+        loadingExitRecords: false,
+        exitRegionFilter: null,
+        exitSearch: "",
+        exitTypeFilter: null,
+        showExitDialog: false,
+        savingExit: false,
+        exitForm: { idNumber: "", beneficiaryName: "", exitType: null, reason: "" },
         healthcareSearch: "",
         healthcareRegionFilter: null,
         healthcareProvinceFilter: null,
@@ -1529,6 +1540,32 @@
             value: this.amvatRecordKey(record),
           }))
           .sort((a, b) => a.title.localeCompare(b.title));
+      },
+
+      exitBeneficiaryOptions() {
+        return (this.enrolledList || [])
+          .map((record) => ({
+            title: `${record.full_name || "Unnamed"}${record.id_number ? " - " + record.id_number : ""}`,
+            value: record.id_number,
+            name: record.full_name,
+          }))
+          .sort((a, b) => a.title.localeCompare(b.title));
+      },
+
+      filteredExitRecords() {
+        let list = this.exitRecords || [];
+        if (this.exitTypeFilter) {
+          list = list.filter((r) => r.exitType === this.exitTypeFilter);
+        }
+        if (this.exitSearch && this.exitSearch.trim().length > 0) {
+          const q = this.exitSearch.toLowerCase().trim();
+          list = list.filter(
+            (r) =>
+              (r.name || "").toLowerCase().includes(q) ||
+              (r.idNumber || "").toLowerCase().includes(q),
+          );
+        }
+        return list;
       },
 
       amvatComparisonSourceRecords() {
@@ -2394,6 +2431,12 @@
         this.amvatComparePage = 1;
         this.ensureAmvatCompareBeneficiary();
       },
+      complianceRegionFilter() {
+        this.loadComplianceAnalytics();
+      },
+      exitRegionFilter() {
+        this.loadExitRecords();
+      },
       amvatCompareBeneficiaryKey() {
         this.amvatComparePage = 1;
       },
@@ -2481,6 +2524,11 @@
         } else if (newView === "reports") {
           this.reportData = [];
           this.reportType = null;
+        } else if (newView === "compliance-report") {
+          this.loadComplianceAnalytics();
+        } else if (newView === "delisted") {
+          this.loadExitRecords();
+          if (this.enrolledList.length === 0) this.loadEnrolledList(false);
         } else if (newView === "manage-users") {
           this.loadUsersList();
           this.startUsersAutoRefresh();
@@ -7078,6 +7126,96 @@
             this.showSnackbar("Error: " + err, "error");
           })
           .getHealthcareRecords(this.getSessionData());
+      },
+
+      loadComplianceAnalytics() {
+        this.loadingComplianceAnalytics = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.loadingComplianceAnalytics = false;
+            if (result.success) {
+              this.complianceAnalytics = result;
+            } else {
+              this.showSnackbar(result.message || "Error loading compliance analytics", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingComplianceAnalytics = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .getComplianceAnalytics(this.complianceRegionFilter, this.getSessionData());
+      },
+
+      complianceStatusPercent(count) {
+        const total = this.complianceAnalytics?.sessions?.total || 0;
+        if (!total) return 0;
+        return Math.round((count / total) * 100);
+      },
+
+      healthcarePercent(count) {
+        const total = this.complianceAnalytics?.healthcare?.total || 0;
+        if (!total) return 0;
+        return Math.round((count / total) * 100);
+      },
+
+      loadExitRecords() {
+        this.loadingExitRecords = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.loadingExitRecords = false;
+            if (result.success) {
+              this.exitRecords = result.records || [];
+            } else {
+              this.showSnackbar(result.message || "Error loading exit records", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingExitRecords = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .getExitRecords(this.exitRegionFilter, this.getSessionData());
+      },
+
+      openExitDialog(beneficiary) {
+        this.exitForm = {
+          idNumber: beneficiary ? beneficiary.id_number : "",
+          beneficiaryName: beneficiary ? beneficiary.full_name : "",
+          exitType: null,
+          reason: "",
+        };
+        this.showExitDialog = true;
+      },
+
+      onExitBeneficiarySelected(idNumber) {
+        const match = this.exitBeneficiaryOptions.find((o) => o.value === idNumber);
+        this.exitForm.beneficiaryName = match ? match.name : "";
+      },
+
+      submitBeneficiaryExit() {
+        if (!this.exitForm.idNumber || !this.exitForm.exitType) {
+          this.showSnackbar("Beneficiary and exit type are required.", "error");
+          return;
+        }
+        this.savingExit = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.savingExit = false;
+            if (result.success) {
+              this.showSnackbar(result.message, "success");
+              this.showExitDialog = false;
+              this.loadExitRecords();
+            } else {
+              this.showSnackbar(result.message, "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.savingExit = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .recordBeneficiaryExit(this.exitForm, this.getSessionData());
       },
 
       openHealthcareDialog(record) {

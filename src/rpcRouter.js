@@ -1,4 +1,4 @@
-const { registry, EXPOSED_FUNCTIONS } = require("./config/registry");
+const { registry, EXPOSED_FUNCTIONS, LOCAL_ONLY_FUNCTIONS } = require("./config/registry");
 const {
   APPS_SCRIPT_WEB_APP_URL,
   USE_APPS_SCRIPT_BACKEND,
@@ -19,7 +19,11 @@ async function handleRpcRequest(payload, res) {
     return;
   }
 
-  if (USE_APPS_SCRIPT_BACKEND) {
+  // Brand-new functions with no Code.gs counterpart must always run
+  // locally, even in production where USE_APPS_SCRIPT_BACKEND is true
+  // for every pre-existing function. This check never affects any
+  // function not explicitly listed in LOCAL_ONLY_FUNCTIONS.
+  if (!LOCAL_ONLY_FUNCTIONS.has(fn) && USE_APPS_SCRIPT_BACKEND) {
     await proxyToAppsScript(payload, res);
     return;
   }

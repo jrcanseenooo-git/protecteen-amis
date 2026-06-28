@@ -5386,6 +5386,320 @@
             </div>
             <!-- ── END HEALTHCARE VIEW ── -->
 
+            <!-- ── COMPLIANCE / CONDITIONALITY MONITORING DASHBOARD ── -->
+            <div v-show="currentView === 'compliance-report'">
+              <v-row>
+                <v-col cols="12">
+                  <v-card class="glass-card">
+                    <v-card-title class="pa-3 px-6">
+                      <div class="d-flex align-center flex-wrap" style="width:100%;gap:12px;">
+                        <div>
+                          <span class="text-h6">Compliance &amp; Conditionality Monitoring</span>
+                          <div class="text-caption text-grey">
+                            Program-wide view across Sessions, Health, and Education conditionalities
+                          </div>
+                        </div>
+                        <v-spacer></v-spacer>
+                        <div style="width:200px;">
+                          <v-select v-model="complianceRegionFilter" :items="availableRegions" label="Region"
+                            variant="outlined" density="compact" hide-details clearable
+                            prepend-inner-icon="mdi-map-marker-outline" />
+                        </div>
+                        <v-btn variant="tonal" color="primary" prepend-icon="mdi-refresh" density="compact"
+                          @click="loadComplianceAnalytics" :loading="loadingComplianceAnalytics">
+                          Refresh
+                        </v-btn>
+                      </div>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text class="pa-4">
+
+                      <!-- Loading -->
+                      <div v-if="loadingComplianceAnalytics && !complianceAnalytics" style="padding:40px 0;text-align:center;">
+                        <v-progress-circular indeterminate color="deep-purple"></v-progress-circular>
+                      </div>
+
+                      <template v-else-if="complianceAnalytics">
+                        <!-- Top summary cards -->
+                        <div class="cr-summary-row">
+                          <div class="cr-summary-card">
+                            <span>Total Enrolled</span>
+                            <strong>{{ complianceAnalytics.totalEnrolled }}</strong>
+                          </div>
+                          <div class="cr-summary-card good">
+                            <span>Session-Compliant</span>
+                            <strong>{{ complianceAnalytics.sessions.buckets['Compliant'] || 0 }}</strong>
+                          </div>
+                          <div class="cr-summary-card warn">
+                            <span>Non-Compliant (1st–4th)</span>
+                            <strong>
+                              {{ (complianceAnalytics.sessions.buckets['First Non-Compliant'] || 0)
+                                 + (complianceAnalytics.sessions.buckets['Second Non-Compliant'] || 0)
+                                 + (complianceAnalytics.sessions.buckets['Third Non-Compliant'] || 0)
+                                 + (complianceAnalytics.sessions.buckets['Fourth Non-Compliant'] || 0) }}
+                            </strong>
+                          </div>
+                          <div class="cr-summary-card bad">
+                            <span>Delisted (Total)</span>
+                            <strong>{{ complianceAnalytics.delisting.total }}</strong>
+                          </div>
+                        </div>
+
+                        <!-- Session / HATS compliance breakdown -->
+                        <div class="cr-section">
+                          <div class="cr-section-title">
+                            <v-icon size="16" color="#7257b3">mdi-calendar-check-outline</v-icon>
+                            Healing &amp; Transformation Session Compliance
+                          </div>
+                          <div v-if="!complianceAnalytics.sessions.tracked" class="cr-not-tracked">
+                            No session attendance data yet.
+                          </div>
+                          <div v-else class="cr-bar-list">
+                            <div v-for="bucket in [
+                              {key:'Compliant', color:'#16a34a'},
+                              {key:'First Non-Compliant', color:'#ca8a04'},
+                              {key:'Second Non-Compliant', color:'#d97706'},
+                              {key:'Third Non-Compliant', color:'#ea580c'},
+                              {key:'Fourth Non-Compliant', color:'#dc2626'},
+                              {key:'Delisted', color:'#7f1d1d'},
+                              {key:'Not Yet Tracked', color:'#9ca3af'},
+                            ]" :key="bucket.key" class="cr-bar-row">
+                              <span class="cr-bar-label">{{ bucket.key }}</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: complianceStatusPercent(complianceAnalytics.sessions.buckets[bucket.key] || 0) + '%',
+                                  background: bucket.color
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.sessions.buckets[bucket.key] || 0 }}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Healthcare compliance -->
+                        <div class="cr-section">
+                          <div class="cr-section-title">
+                            <v-icon size="16" color="#7257b3">mdi-hospital-box-outline</v-icon>
+                            Healthcare (Post-Natal Visit) Compliance
+                          </div>
+                          <div v-if="!complianceAnalytics.healthcare.tracked" class="cr-not-tracked">
+                            No healthcare records yet.
+                          </div>
+                          <div v-else class="cr-bar-list">
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Fully Compliant (all visits)</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: healthcarePercent(complianceAnalytics.healthcare.fullyCompliant) + '%',
+                                  background: '#16a34a'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.healthcare.fullyCompliant }}</span>
+                            </div>
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">Partial</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: healthcarePercent(complianceAnalytics.healthcare.partial) + '%',
+                                  background: '#d97706'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.healthcare.partial }}</span>
+                            </div>
+                            <div class="cr-bar-row">
+                              <span class="cr-bar-label">No Visits Yet</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: healthcarePercent(complianceAnalytics.healthcare.none) + '%',
+                                  background: '#dc2626'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ complianceAnalytics.healthcare.none }}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Delisting reasons -->
+                        <div class="cr-section">
+                          <div class="cr-section-title">
+                            <v-icon size="16" color="#7257b3">mdi-account-remove-outline</v-icon>
+                            Delisting Reasons
+                          </div>
+                          <div v-if="complianceAnalytics.delisting.total === 0" class="cr-not-tracked">
+                            No beneficiaries delisted{{ complianceRegionFilter ? ' in this region' : '' }} yet.
+                          </div>
+                          <div v-else class="cr-bar-list">
+                            <div v-for="(count, reason) in complianceAnalytics.delisting.byReason" :key="reason" class="cr-bar-row">
+                              <span class="cr-bar-label">{{ reason }}</span>
+                              <div class="cr-bar-track">
+                                <div class="cr-bar-fill" :style="{
+                                  width: Math.round((count / complianceAnalytics.delisting.total) * 100) + '%',
+                                  background: '#7f1d1d'
+                                }"></div>
+                              </div>
+                              <span class="cr-bar-value">{{ count }}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Education — honest gap, not fabricated data -->
+                        <div class="cr-section">
+                          <div class="cr-section-title">
+                            <v-icon size="16" color="#7257b3">mdi-school-outline</v-icon>
+                            Education Attendance Compliance
+                          </div>
+                          <div class="cr-not-tracked">
+                            <v-icon size="16" color="#a78bfa">mdi-information-outline</v-icon>
+                            Not yet tracked in the system — school attendance monitoring is a planned module.
+                          </div>
+                        </div>
+                      </template>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </div>
+            <!-- ── END COMPLIANCE REPORT VIEW ── -->
+
+            <!-- ── DELISTED / EXITED BENEFICIARIES ── -->
+            <div v-show="currentView === 'delisted'">
+              <v-row>
+                <v-col cols="12">
+                  <v-card class="glass-card">
+                    <v-card-title class="pa-3 px-6">
+                      <div class="d-flex align-center flex-wrap" style="width:100%;gap:12px;">
+                        <div>
+                          <span class="text-h6">Delisted &amp; Exited Beneficiaries</span>
+                          <div class="text-caption text-grey">
+                            Graduations, voluntary exits, and delistments — including automatic
+                            delisting from session non-compliance
+                          </div>
+                        </div>
+                        <v-spacer></v-spacer>
+                        <v-btn color="deep-purple" variant="flat" prepend-icon="mdi-account-remove-outline"
+                          @click="openExitDialog(null)">
+                          Record Exit
+                        </v-btn>
+                      </div>
+                    </v-card-title>
+                    <v-divider></v-divider>
+                    <v-card-text class="pa-4">
+
+                      <!-- Filters -->
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+                        <div style="width:240px;">
+                          <v-text-field v-model="exitSearch" placeholder="Search name or ID..."
+                            prepend-inner-icon="mdi-magnify" variant="outlined" density="compact" hide-details clearable />
+                        </div>
+                        <div style="width:200px;">
+                          <v-select v-model="exitTypeFilter" :items="['Delistment', 'Voluntary Exit', 'Graduation']"
+                            label="Exit Type" variant="outlined" density="compact" hide-details clearable />
+                        </div>
+                        <div style="width:200px;">
+                          <v-select v-model="exitRegionFilter" :items="availableRegions" label="Region"
+                            variant="outlined" density="compact" hide-details clearable
+                            prepend-inner-icon="mdi-map-marker-outline" />
+                        </div>
+                        <v-btn variant="tonal" color="primary" prepend-icon="mdi-refresh" density="compact"
+                          @click="loadExitRecords" :loading="loadingExitRecords">
+                          Refresh
+                        </v-btn>
+                        <span style="margin-left:auto;font-size:12px;font-weight:600;color:#7c3aed;background:#ede9fe;padding:4px 12px;border-radius:20px;white-space:nowrap;">
+                          {{ filteredExitRecords.length }} record{{ filteredExitRecords.length !== 1 ? 's' : '' }}
+                        </span>
+                      </div>
+
+                      <!-- Loading -->
+                      <div v-if="loadingExitRecords" style="padding:40px 0;text-align:center;">
+                        <v-progress-circular indeterminate color="deep-purple"></v-progress-circular>
+                      </div>
+
+                      <!-- Empty -->
+                      <div v-else-if="filteredExitRecords.length === 0" class="amvat-empty-wrap">
+                        <v-icon size="56" color="purple-lighten-3">mdi-account-remove-outline</v-icon>
+                        <div class="text-h6 mt-4" style="color:#5b21b6;">No exit records found</div>
+                        <div class="text-caption text-medium-emphasis mt-1">
+                          Beneficiaries who graduate, voluntarily exit, or are delisted will appear here
+                        </div>
+                      </div>
+
+                      <!-- Table -->
+                      <div v-else class="amvat-tbl-wrap">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>ID Number</th>
+                              <th>Exit Type</th>
+                              <th>Reason</th>
+                              <th>Exit Date</th>
+                              <th>Recorded By</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="rec in filteredExitRecords" :key="rec.idNumber + rec.exitDate">
+                              <td style="padding:10px 18px;font-weight:600;color:#1e1b4b;">{{ rec.name }}</td>
+                              <td style="padding:10px 16px;color:#7c3aed;font-size:12px;">{{ rec.idNumber }}</td>
+                              <td style="padding:10px 16px;">
+                                <span :style="{
+                                  display: 'inline-flex', padding: '3px 10px', borderRadius: '20px',
+                                  fontSize: '11px', fontWeight: 800,
+                                  background: rec.exitType === 'Graduation' ? '#dcfce7' : rec.exitType === 'Voluntary Exit' ? '#fef3c7' : '#fee2e2',
+                                  color: rec.exitType === 'Graduation' ? '#16a34a' : rec.exitType === 'Voluntary Exit' ? '#d97706' : '#dc2626'
+                                }">{{ rec.exitType }}</span>
+                                <div v-if="rec.source === 'auto-session-noncompliance'" style="font-size:10px;color:#a78bfa;margin-top:3px;">
+                                  Auto — session non-compliance
+                                </div>
+                              </td>
+                              <td style="padding:10px 16px;font-size:12px;color:#4b5563;max-width:260px;">
+                                {{ rec.reason || '—' }}
+                                <div v-if="rec.absentSessions" style="font-size:10px;color:#9ca3af;">
+                                  Absent: {{ rec.absentSessions }}
+                                </div>
+                              </td>
+                              <td style="padding:10px 16px;font-size:12px;color:#4b5563;">
+                                {{ rec.exitDate ? new Date(rec.exitDate).toLocaleDateString() : '—' }}
+                              </td>
+                              <td style="padding:10px 16px;font-size:12px;color:#4b5563;">{{ rec.recordedBy || '—' }}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+
+              <!-- Record Exit Dialog -->
+              <v-dialog v-model="showExitDialog" max-width="520">
+                <v-card style="border-radius:18px;">
+                  <v-card-title class="pa-4 px-6" style="background:linear-gradient(135deg,#7257b3 0%,#764ba2 100%);color:white;">
+                    Record Beneficiary Exit
+                  </v-card-title>
+                  <v-card-text class="pa-6">
+                    <v-select v-model="exitForm.idNumber" :items="exitBeneficiaryOptions" item-title="title"
+                      item-value="value" label="Beneficiary" variant="outlined" density="comfortable"
+                      class="mb-3" @update:modelValue="onExitBeneficiarySelected">
+                    </v-select>
+                    <v-select v-model="exitForm.exitType" :items="['Delistment', 'Voluntary Exit', 'Graduation']"
+                      label="Exit Type" variant="outlined" density="comfortable" class="mb-3">
+                    </v-select>
+                    <v-textarea v-model="exitForm.reason" label="Reason / Notes" variant="outlined" rows="3"
+                      placeholder="e.g. Reached target AMVAT level with case manager recommendation; or fraud/misrepresentation finding; or waiver submitted">
+                    </v-textarea>
+                  </v-card-text>
+                  <v-card-actions class="pa-4 px-6">
+                    <v-spacer></v-spacer>
+                    <v-btn variant="text" @click="showExitDialog = false">Cancel</v-btn>
+                    <v-btn color="deep-purple" variant="flat" :loading="savingExit" @click="submitBeneficiaryExit">
+                      Save
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-dialog>
+            </div>
+            <!-- ── END DELISTED / EXIT VIEW ── -->
+
         </v-main>
       </template>
 
@@ -7439,7 +7753,7 @@
       </v-dialog>
 
 <!-- ── UNDER DEVELOPMENT VIEWS ── -->
-<div v-show="['delisted','income-records','compliance-report','export'].includes(currentView)"
+<div v-show="['income-records','export'].includes(currentView)"
   style="position:fixed; top:64px; left:280px; right:0; bottom:0; display:flex; align-items:center; justify-content:center; z-index:1; pointer-events:none;">
 
   <!-- Orbs -->

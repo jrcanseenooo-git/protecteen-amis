@@ -5401,3 +5401,115 @@
     }
   }
   
+
+  /* ── COMPLIANCE / CONDITIONALITY MONITORING DASHBOARD ── */
+  .cr-summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+
+  .cr-summary-card {
+    background: #faf8ff;
+    border: 1.5px solid #ede8ff;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cr-summary-card span {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: #8b7bb8;
+  }
+
+  .cr-summary-card strong {
+    font-size: 26px;
+    font-weight: 900;
+    color: #1e1b4b;
+  }
+
+  .cr-summary-card.good strong { color: #16a34a; }
+  .cr-summary-card.warn strong { color: #d97706; }
+  .cr-summary-card.bad strong { color: #dc2626; }
+
+  .cr-section {
+    margin-bottom: 26px;
+  }
+
+  .cr-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin-bottom: 12px;
+  }
+
+  .cr-bar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cr-bar-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 44px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .cr-bar-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+  }
+
+  .cr-bar-track {
+    background: #f1edff;
+    border-radius: 8px;
+    height: 14px;
+    overflow: hidden;
+  }
+
+  .cr-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.3s ease;
+    min-width: 2px;
+  }
+
+  .cr-bar-value {
+    font-size: 12px;
+    font-weight: 800;
+    color: #1e1b4b;
+    text-align: right;
+  }
+
+  .cr-not-tracked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #faf8ff;
+    border: 1.5px dashed #e2d6ff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 12px;
+    color: #8b7bb8;
+  }
+
+  @media (max-width: 768px) {
+    .cr-bar-row {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .cr-bar-value {
+      text-align: left;
+    }
+  }

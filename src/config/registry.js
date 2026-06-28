@@ -5,6 +5,8 @@ const dashboardController = require("../controllers/dashboardController");
 const reportsController = require("../controllers/reportsController");
 const profileSearchController = require("../controllers/profileSearchController");
 const healthcareController = require("../controllers/healthcareController");
+const complianceController = require("../controllers/complianceController");
+const exitController = require("../controllers/exitController");
 
 const READ_ONLY_FUNCTIONS = new Set([
   "checkSession",
@@ -13,12 +15,14 @@ const READ_ONLY_FUNCTIONS = new Set([
   "getAllSessionAttendance",
   "getAllUsers",
   "getBarangayList",
+  "getComplianceAnalytics",
   "getDashboardStats",
   "getDashboardStatsByBarangay",
   "getDataChangeTimestamp",
   "getEnrolledListCached",
   "getEnrolledRecordWithInfo",
   "getExistingAMVAT",
+  "getExitRecords",
   "getGranteeRecords",
   "getHealthcareRecords",
   "getPayoutRecords",
@@ -56,6 +60,17 @@ const APPS_SCRIPT_FALLBACK_FUNCTIONS = new Set([
   "updateAMVATProfile",
 ]);
 
+// Functions that exist ONLY in this Node codebase — there is no Code.gs
+// counterpart to proxy to, so these must always run locally even in
+// production (where USE_APPS_SCRIPT_BACKEND is normally true for every
+// other function). Adding a name here never changes behavior for any
+// function NOT in this set.
+const LOCAL_ONLY_FUNCTIONS = new Set([
+  "getComplianceAnalytics",
+  "getExitRecords",
+  "recordBeneficiaryExit",
+]);
+
 const registry = {
   ...authController,
   ...userAdminController,
@@ -64,6 +79,8 @@ const registry = {
   ...enrolledController,
   ...healthcareController,
   ...dashboardController,
+  ...complianceController,
+  ...exitController,
   // Still pending - see README.md migration checklist:
   // getDashboardStatsByBarangay, saveSessionAttendance,
   // getAllSessionAttendance, bulkUpdateSessions, getSessionTestRecords,
@@ -84,5 +101,6 @@ module.exports = {
   registry,
   READ_ONLY_FUNCTIONS,
   APPS_SCRIPT_FALLBACK_FUNCTIONS,
+  LOCAL_ONLY_FUNCTIONS,
   EXPOSED_FUNCTIONS,
 };
