@@ -1,5 +1,6 @@
 const sheets = require("./sheetsClient");
 const { SETTINGS } = require("../services/settings");
+const { getBookletMonitoringAnalytics } = require("./bookletMonitoringModel");
 
 // Bucket labels mirror the exact strings saveSessionAttendance() in
 // Code.gs already writes into the "Compliance Status" column — matching
@@ -154,6 +155,7 @@ async function getComplianceAnalytics(regionFilter) {
     getDelistingTrend(regionMap, regionFilter),
     getHealthcareCompliance(regionMap, regionFilter),
   ]);
+  const booklet = await getBookletMonitoringAnalytics(regionFilter);
 
   return {
     totalEnrolled,
@@ -163,7 +165,8 @@ async function getComplianceAnalytics(regionFilter) {
     // Honest placeholder — there is no education attendance module yet
     // (see Phase 3). Showing this explicitly rather than fabricating a
     // number is the whole point of marking it `tracked: false`.
-    education: { tracked: false },
+    education: { tracked: true, ...booklet.education },
+    checklist: { tracked: true, ...booklet.checklist },
   };
 }
 

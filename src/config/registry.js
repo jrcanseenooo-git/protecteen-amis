@@ -7,6 +7,7 @@ const profileSearchController = require("../controllers/profileSearchController"
 const healthcareController = require("../controllers/healthcareController");
 const complianceController = require("../controllers/complianceController");
 const exitController = require("../controllers/exitController");
+const bookletMonitoringController = require("../controllers/bookletMonitoringController");
 
 const READ_ONLY_FUNCTIONS = new Set([
   "checkSession",
@@ -15,12 +16,14 @@ const READ_ONLY_FUNCTIONS = new Set([
   "getAllSessionAttendance",
   "getAllUsers",
   "getBarangayList",
+  "getBookletComplianceRecords",
   "getComplianceAnalytics",
   "getDashboardStats",
   "getDashboardStatsByBarangay",
   "getDataChangeTimestamp",
   "getEnrolledListCached",
   "getEnrolledRecordWithInfo",
+  "getEducationMonitoringRecords",
   "getExistingAMVAT",
   "getExitRecords",
   "getGranteeRecords",
@@ -66,9 +69,13 @@ const APPS_SCRIPT_FALLBACK_FUNCTIONS = new Set([
 // other function). Adding a name here never changes behavior for any
 // function NOT in this set.
 const LOCAL_ONLY_FUNCTIONS = new Set([
+  "getBookletComplianceRecords",
   "getComplianceAnalytics",
+  "getEducationMonitoringRecords",
   "getExitRecords",
   "recordBeneficiaryExit",
+  "saveBookletComplianceRecord",
+  "saveEducationMonitoringRecord",
 ]);
 
 const registry = {
@@ -81,6 +88,7 @@ const registry = {
   ...dashboardController,
   ...complianceController,
   ...exitController,
+  ...bookletMonitoringController,
   // Still pending - see README.md migration checklist:
   // getDashboardStatsByBarangay, saveSessionAttendance,
   // getAllSessionAttendance, bulkUpdateSessions, getSessionTestRecords,

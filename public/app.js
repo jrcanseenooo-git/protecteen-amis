@@ -363,7 +363,9 @@
             ],
           },
           { title: 'PT Results', icon: 'mdi-test-tube', view: 'pt-results', roles: ['admin', 'case_manager'] },
+          { title: 'Education', icon: 'mdi-school-outline', view: 'education-monitoring', roles: ['admin', 'case_manager'] },
           { title: 'Healthcare', icon: 'mdi-hospital-box-outline', view: 'healthcare', roles: ['admin', 'case_manager'] },
+          { title: 'Booklet Compliance', icon: 'mdi-book-check-outline', view: 'booklet-compliance', roles: ['admin', 'case_manager'] },
           { section: 'System', roles: ['admin', 'case_manager'] },
           {
             title: 'Reports',
@@ -760,6 +762,27 @@
         showExitDialog: false,
         savingExit: false,
         exitForm: { idNumber: "", beneficiaryName: "", exitType: null, reason: "" },
+        bookletMonths: Array.from({ length: 24 }, (_, i) => ({ title: `Month ${i + 1}`, value: i + 1 })),
+        educationRecords: [],
+        loadingEducationRecords: false,
+        educationMonth: 1,
+        educationRegionFilter: null,
+        educationSearch: "",
+        educationStatusFilter: null,
+        educationDialog: false,
+        savingEducation: false,
+        educationEditRecord: null,
+        educationEditData: {},
+        bookletComplianceRecords: [],
+        loadingBookletComplianceRecords: false,
+        bookletComplianceMonth: 1,
+        bookletComplianceRegionFilter: null,
+        bookletComplianceSearch: "",
+        bookletComplianceStatusFilter: null,
+        bookletComplianceDialog: false,
+        savingBookletCompliance: false,
+        bookletComplianceEditRecord: null,
+        bookletComplianceEditData: {},
         healthcareSearch: "",
         healthcareRegionFilter: null,
         healthcareProvinceFilter: null,
@@ -1568,6 +1591,57 @@
         return list;
       },
 
+      filteredEducationRecords() {
+        let list = this.educationRecords || [];
+        if (this.educationStatusFilter) {
+          list = list.filter((r) => r.status === this.educationStatusFilter);
+        }
+        if (this.educationSearch && this.educationSearch.trim().length > 0) {
+          const q = this.educationSearch.toLowerCase().trim();
+          list = list.filter(
+            (r) =>
+              (r.name || "").toLowerCase().includes(q) ||
+              (r.idNumber || "").toLowerCase().includes(q) ||
+              (r.barangay || "").toLowerCase().includes(q),
+          );
+        }
+        return list;
+      },
+
+      educationStatusCounts() {
+        const counts = { Compliant: 0, Partial: 0, "Non-Compliant": 0, "Not Yet Tracked": 0 };
+        (this.educationRecords || []).forEach((r) => {
+          counts[r.status] = (counts[r.status] || 0) + 1;
+        });
+        return counts;
+      },
+
+      filteredBookletComplianceRecords() {
+        let list = this.bookletComplianceRecords || [];
+        if (this.bookletComplianceStatusFilter) {
+          list = list.filter((r) => this.getBookletComplianceStatus(r) === this.bookletComplianceStatusFilter);
+        }
+        if (this.bookletComplianceSearch && this.bookletComplianceSearch.trim().length > 0) {
+          const q = this.bookletComplianceSearch.toLowerCase().trim();
+          list = list.filter(
+            (r) =>
+              (r.name || "").toLowerCase().includes(q) ||
+              (r.idNumber || "").toLowerCase().includes(q) ||
+              (r.barangay || "").toLowerCase().includes(q),
+          );
+        }
+        return list;
+      },
+
+      bookletComplianceCounts() {
+        const counts = { Complete: 0, Incomplete: 0, "Not Yet Tracked": 0 };
+        (this.bookletComplianceRecords || []).forEach((r) => {
+          const status = this.getBookletComplianceStatus(r);
+          counts[status] = (counts[status] || 0) + 1;
+        });
+        return counts;
+      },
+
       amvatComparisonSourceRecords() {
         if (this.amvatCompareMode !== "selected") {
           return this.filteredAmvatTableRecords;
@@ -2374,6 +2448,18 @@
       healthcareProvinceFilter() {
         this.healthcarePage = 1;
       },
+      educationMonth() {
+        if (this.currentView === "education-monitoring") this.loadEducationMonitoringRecords();
+      },
+      educationRegionFilter() {
+        if (this.currentView === "education-monitoring") this.loadEducationMonitoringRecords();
+      },
+      bookletComplianceMonth() {
+        if (this.currentView === "booklet-compliance") this.loadBookletComplianceRecords();
+      },
+      bookletComplianceRegionFilter() {
+        if (this.currentView === "booklet-compliance") this.loadBookletComplianceRecords();
+      },
 
       selectedBarangay(val) {
         this.loadBarangayStats(val);
@@ -2432,10 +2518,10 @@
         this.ensureAmvatCompareBeneficiary();
       },
       complianceRegionFilter() {
-        this.loadComplianceAnalytics();
+        if (this.currentView === "compliance-report") this.loadComplianceAnalytics();
       },
       exitRegionFilter() {
-        this.loadExitRecords();
+        if (this.currentView === "delisted") this.loadExitRecords();
       },
       amvatCompareBeneficiaryKey() {
         this.amvatComparePage = 1;
@@ -2517,8 +2603,12 @@
         } else if (newView === "pt-results") {
           this.loadPTResults();
           this.loadEnrolledList(false);
+        } else if (newView === "education-monitoring") {
+          this.loadEducationMonitoringRecords();
         } else if (newView === 'healthcare') {
           this.loadHealthcareRecords();
+        } else if (newView === "booklet-compliance") {
+          this.loadBookletComplianceRecords();
         } else if (newView === "income-records") {
           this.loadPayoutRecords();
         } else if (newView === "reports") {
@@ -7176,6 +7266,183 @@
             this.showSnackbar("Error: " + err, "error");
           })
           .getExitRecords(this.exitRegionFilter, this.getSessionData());
+      },
+
+      loadEducationMonitoringRecords() {
+        this.loadingEducationRecords = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.loadingEducationRecords = false;
+            if (result.success) {
+              this.educationRecords = result.records || [];
+            } else {
+              this.showSnackbar(result.message || "Error loading education monitoring", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingEducationRecords = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .getEducationMonitoringRecords(this.educationMonth, this.educationRegionFilter, this.getSessionData());
+      },
+
+      openEducationDialog(record) {
+        this.educationEditRecord = record;
+        this.educationEditData = {
+          ...record,
+          month: this.educationMonth,
+          schoolName: record.schoolName || "",
+          educationType: record.educationType || "",
+          daysAttended: record.daysAttended || "",
+          teacherSignatureDate: record.teacherSignatureDate || "",
+          returnCommitment: !!record.returnCommitment,
+          caseWorkerConfirmed: !!record.caseWorkerConfirmed,
+          status: record.status || "Not Yet Tracked",
+          notes: record.notes || "",
+        };
+        this.educationDialog = true;
+      },
+
+      saveEducationMonitoringRecord(confirmed = false) {
+        if (!this.educationEditData.idNumber) return;
+        if (!confirmed) {
+          this.requestActionConfirm(
+            {
+              title: "Save Education Monitoring?",
+              subtitle: "Monthly booklet compliance",
+              message: "This will update the beneficiary's education attendance monitoring record for the selected month.",
+              confirmText: "Save Education",
+              confirmIcon: "mdi-content-save",
+            },
+            () => this.saveEducationMonitoringRecord(true),
+          );
+          return;
+        }
+        this.savingEducation = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.savingEducation = false;
+            if (result.success) {
+              this.showSnackbar(result.message || "Education monitoring saved.", "success");
+              this.educationDialog = false;
+              this.loadEducationMonitoringRecords();
+              this.loadComplianceAnalytics();
+            } else {
+              this.showSnackbar(result.message || "Failed to save education monitoring.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.savingEducation = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .saveEducationMonitoringRecord(this.educationEditData, this.getSessionData());
+      },
+
+      loadBookletComplianceRecords() {
+        this.loadingBookletComplianceRecords = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.loadingBookletComplianceRecords = false;
+            if (result.success) {
+              this.bookletComplianceRecords = result.records || [];
+            } else {
+              this.showSnackbar(result.message || "Error loading booklet compliance", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingBookletComplianceRecords = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .getBookletComplianceRecords(this.bookletComplianceMonth, this.bookletComplianceRegionFilter, this.getSessionData());
+      },
+
+      openBookletComplianceDialog(record) {
+        this.bookletComplianceEditRecord = record;
+        this.bookletComplianceEditData = {
+          ...record,
+          month: this.bookletComplianceMonth,
+          hats: !!record.hats,
+          medicalCertificate: !!record.medicalCertificate,
+          pregnancyTest: !!record.pregnancyTest,
+          certificateEnrollment: !!record.certificateEnrollment,
+          bookletSignedByAdvisor: !!record.bookletSignedByAdvisor,
+          certificateAttendance: !!record.certificateAttendance,
+          beneficiarySignature: !!record.beneficiarySignature,
+          socialWorkerSignature: !!record.socialWorkerSignature,
+          verificationStatus: record.verificationStatus || "Not Yet Tracked",
+          observations: record.observations || "",
+        };
+        this.bookletComplianceDialog = true;
+      },
+
+      getBookletComplianceStatus(record) {
+        const required = [
+          "hats",
+          "medicalCertificate",
+          "pregnancyTest",
+          "certificateEnrollment",
+          "bookletSignedByAdvisor",
+          "certificateAttendance",
+          "beneficiarySignature",
+          "socialWorkerSignature",
+        ];
+        const marked = required.filter((key) => !!record[key]).length;
+        if (marked === required.length) return "Complete";
+        if (marked > 0 || record.verificationStatus !== "Not Yet Tracked") return "Incomplete";
+        return "Not Yet Tracked";
+      },
+
+      getBookletComplianceProgress(record) {
+        const required = [
+          "hats",
+          "medicalCertificate",
+          "pregnancyTest",
+          "certificateEnrollment",
+          "bookletSignedByAdvisor",
+          "certificateAttendance",
+          "beneficiarySignature",
+          "socialWorkerSignature",
+        ];
+        return required.filter((key) => !!record[key]).length;
+      },
+
+      saveBookletComplianceRecord(confirmed = false) {
+        if (!this.bookletComplianceEditData.idNumber) return;
+        if (!confirmed) {
+          this.requestActionConfirm(
+            {
+              title: "Save Booklet Compliance?",
+              subtitle: "Monthly document verification",
+              message: "This will update the beneficiary's monthly booklet checklist and compliance verification record.",
+              confirmText: "Save Compliance",
+              confirmIcon: "mdi-content-save",
+            },
+            () => this.saveBookletComplianceRecord(true),
+          );
+          return;
+        }
+        this.savingBookletCompliance = true;
+        google.script.run
+          .withSuccessHandler((response) => {
+            const result = JSON.parse(response);
+            this.savingBookletCompliance = false;
+            if (result.success) {
+              this.showSnackbar(result.message || "Booklet compliance saved.", "success");
+              this.bookletComplianceDialog = false;
+              this.loadBookletComplianceRecords();
+              this.loadComplianceAnalytics();
+            } else {
+              this.showSnackbar(result.message || "Failed to save booklet compliance.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.savingBookletCompliance = false;
+            this.showSnackbar("Error: " + err, "error");
+          })
+          .saveBookletComplianceRecord(this.bookletComplianceEditData, this.getSessionData());
       },
 
       openExitDialog(beneficiary) {
