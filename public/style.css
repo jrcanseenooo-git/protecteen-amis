@@ -1733,6 +1733,22 @@
     overflow-x: auto;
   }
 
+  .amvat-compare-table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-top: 1.5px solid #ede8ff;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .amvat-compare-table-footer-info {
+    font-size: 12px;
+    color: #7c3aed;
+    font-weight: 600;
+  }
+
   .amvat-compare-table table {
     width: 100%;
     border-collapse: collapse;
