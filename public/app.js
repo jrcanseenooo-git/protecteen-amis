@@ -55,59 +55,8 @@
                 :prepend-inner-icon="getIcon('select')">
               </v-select>
 
-              <div v-else-if="item.type === 'signature'">
-                <label style="display: block; margin-bottom: 12px; font-weight: 600; color: #333; font-size: 14px;">
-                  <v-icon size="20" style="vertical-align: middle; margin-right: 4px;">mdi-draw</v-icon>
-                  {{ item.label }}
-                </label>
-                <canvas 
-                  ref="canvas" 
-                  class="signature-canvas"
-                  style="width: 100%; height: 200px;">
-                </canvas>
-                <div style="display: flex; gap: 12px; margin-top: 12px; align-items: center;">
-                  <v-btn @click="clearSignature" color="error" variant="outlined" size="small">
-                    <v-icon left size="18">mdi-eraser</v-icon> Clear
-                  </v-btn>
-                  <v-chip v-if="item.value" color="success" size="small">
-                    <v-icon left size="18">mdi-check-circle</v-icon> Signature Captured
-                  </v-chip>
-                </div>
-              </div>
             </div>
           `,
-        data() {
-          return {
-            signaturePad: null,
-          };
-        },
-
-        mounted() {
-          if (this.item.type === "signature") {
-            // ADD setTimeout wrapper
-            setTimeout(() => {
-              this.$nextTick(() => {
-                const canvas = this.$refs.canvas;
-                if (canvas) {
-                  this.resizeCanvas();
-                  this.signaturePad = new SignaturePad(canvas, {
-                    backgroundColor: "rgba(0, 0, 0, 0)",
-                    penColor: "rgb(0, 0, 0)",
-                    minWidth: 1,
-                    maxWidth: 2.5,
-                  });
-
-                  this.signaturePad.addEventListener("endStroke", () => {
-                    this.updateSignatureValue();
-                  });
-
-                  window.addEventListener("resize", this.resizeCanvas);
-                }
-              });
-            }, 100); // 100ms delay to ensure DOM is ready
-          }
-        },
-
         methods: {
           getIcon(type) {
             const icons = {
@@ -120,34 +69,7 @@
             };
             return icons[type] || "mdi-text";
           },
-          updateSignatureValue() {
-            if (this.signaturePad && !this.signaturePad.isEmpty()) {
-              this.item.value = this.signaturePad.toDataURL("image/png");
-            } else {
-              this.item.value = "";
-            }
-          },
-          clearSignature() {
-            if (this.signaturePad) {
-              this.signaturePad.clear();
-              this.item.value = "";
-            }
-          },
-          resizeCanvas() {
-            const canvas = this.$refs.canvas;
-            if (!canvas) return;
-
-            const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            canvas.width = canvas.offsetWidth * ratio;
-            canvas.height = canvas.offsetHeight * ratio;
-            canvas.getContext("2d").scale(ratio, ratio);
-
-            if (this.signaturePad && this.item.value) {
-              this.signaturePad.clear();
-            }
-          },
         },
-        expose: ["clearSignature", "signaturePad"],
       },
     },
 
@@ -171,7 +93,6 @@
         toggleStatusTarget: null,
         togglingStatus: false,
         actionConfirmDialog: false,
-        actionConfirmPersistent: false,
         actionConfirmCallback: null,
         actionConfirm: {
           title: "Confirm Action",
@@ -364,9 +285,7 @@
           { title: 'PT Results', icon: 'mdi-test-tube', view: 'pt-results', roles: ['admin', 'case_manager'] },
           { title: 'Education', icon: 'mdi-school-outline', view: 'education-monitoring', roles: ['admin', 'case_manager'] },
           { title: 'Healthcare', icon: 'mdi-hospital-box-outline', view: 'healthcare', roles: ['admin', 'case_manager'] },
-          { title: 'Booklet Compliance', icon: 'mdi-book-check-outline', view: 'booklet-compliance', roles: ['admin', 'case_manager'] },
-          { title: 'Journal & Worker Notes', icon: 'mdi-notebook-heart-outline', view: 'journal-notes', roles: ['admin', 'case_manager'] },
-          { title: 'Contact Circle', icon: 'mdi-account-group-outline', view: 'contact-circle', roles: ['admin', 'case_manager'] },
+          // { title: 'Booklet Compliance', icon: 'mdi-book-check-outline', view: 'booklet-compliance', roles: ['admin', 'case_manager'] },
           { section: 'System', roles: ['admin', 'case_manager'] },
           {
             title: 'Reports',
@@ -662,11 +581,6 @@
             options: ["Yes", "No"],
             rules: [(v) => !!v || "Required"],
           },
-          signature: {
-            type: "signature",
-            label: "Digital Signature",
-            value: "",
-          },
           _alreadyEnrolled: false,
           _existingEnrollmentId: null,
         },
@@ -792,24 +706,6 @@
         savingBookletCompliance: false,
         bookletComplianceEditRecord: null,
         bookletComplianceEditData: {},
-        journalMonth: 1,
-        journalRegionFilter: null,
-        journalSearch: "",
-        journalPage: 1,
-        journalPageSize: 15,
-        journalRecords: [],
-        loadingJournalRecords: false,
-        journalDialog: false,
-        savingJournal: false,
-        journalEditRecord: null,
-        contactCircleRecords: [],
-        loadingContactCircle: false,
-        contactCircleSearch: "",
-        contactCirclePage: 1,
-        contactCirclePageSize: 15,
-        contactCircleDialog: false,
-        savingContactCircle: false,
-        contactCircleEditRecord: null,
         healthcareSearch: "",
         healthcareRegionFilter: null,
         healthcareProvinceFilter: null,
@@ -1669,51 +1565,6 @@
         return counts;
       },
 
-      filteredJournalRecords() {
-        let list = this.journalRecords || [];
-        if (this.journalSearch && this.journalSearch.trim().length > 0) {
-          const q = this.journalSearch.toLowerCase().trim();
-          list = list.filter(
-            (r) =>
-              (r.name || "").toLowerCase().includes(q) ||
-              (r.idNumber || "").toLowerCase().includes(q) ||
-              (r.barangay || "").toLowerCase().includes(q),
-          );
-        }
-        return list;
-      },
-
-      paginatedJournalRecords() {
-        const start = (this.journalPage - 1) * this.journalPageSize;
-        return this.filteredJournalRecords.slice(start, start + this.journalPageSize);
-      },
-
-      journalPageCount() {
-        return Math.max(1, Math.ceil(this.filteredJournalRecords.length / this.journalPageSize));
-      },
-
-      filteredContactCircleRecords() {
-        let list = this.contactCircleRecords || [];
-        if (this.contactCircleSearch && this.contactCircleSearch.trim().length > 0) {
-          const q = this.contactCircleSearch.toLowerCase().trim();
-          list = list.filter(
-            (r) =>
-              (r.beneficiaryName || "").toLowerCase().includes(q) ||
-              (r.idNumber || "").toLowerCase().includes(q) ||
-              (r.barangay || "").toLowerCase().includes(q),
-          );
-        }
-        return list;
-      },
-
-      paginatedContactCircleRecords() {
-        const start = (this.contactCirclePage - 1) * this.contactCirclePageSize;
-        return this.filteredContactCircleRecords.slice(start, start + this.contactCirclePageSize);
-      },
-
-      contactCirclePageCount() {
-        return Math.max(1, Math.ceil(this.filteredContactCircleRecords.length / this.contactCirclePageSize));
-      },
 
       amvatComparisonSourceRecords() {
         if (this.amvatCompareMode !== "selected") {
@@ -2554,16 +2405,6 @@
       bookletComplianceRegionFilter() {
         if (this.currentView === "booklet-compliance") this.loadBookletComplianceRecords();
       },
-      journalMonth() {
-        this.journalPage = 1;
-        if (this.currentView === "journal-notes") this.loadJournalRecords();
-      },
-      journalRegionFilter() {
-        this.journalPage = 1;
-        if (this.currentView === "journal-notes") this.loadJournalRecords();
-      },
-      journalSearch() { this.journalPage = 1; },
-      contactCircleSearch() { this.contactCirclePage = 1; },
       granteeSearch() { this.granteePage = 1; },
       granteeRegionFilter() { this.granteePage = 1; },
       granteeRelFilter() { this.granteePage = 1; },
@@ -2729,10 +2570,6 @@
         } else if (newView === "delisted") {
           this.loadExitRecords();
           if (this.enrolledList.length === 0) this.loadEnrolledList(false);
-        } else if (newView === "journal-notes") {
-          this.loadJournalRecords();
-        } else if (newView === "contact-circle") {
-          this.loadContactCircleRecords();
         } else if (newView === "manage-users") {
           this.loadUsersList();
           this.startUsersAutoRefresh();
@@ -2822,9 +2659,10 @@
             "linear-gradient(135deg,#7257b3 0%,#764ba2 100%)",
           buttonColor: options.buttonColor || "#7257b3",
         };
-        this.actionConfirmPersistent = !!options.persistent;
         this.actionConfirmCallback = callback;
-        this.actionConfirmDialog = true;
+        this.$nextTick(() => {
+          this.actionConfirmDialog = true;
+        });
       },
 
       cancelActionConfirm() {
@@ -2897,7 +2735,7 @@
       },
 
       savePTEdit(confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save PT Results?",
@@ -2938,7 +2776,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Apply PT Result to Selected Records?",
@@ -3301,7 +3139,7 @@
       },
 
       saveForcePassword(confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Set New Password?",
@@ -3513,7 +3351,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save Batch Scores?",
@@ -3610,7 +3448,7 @@
           this.showSnackbar("Please select a score (0-5)", "warning");
           return;
         }
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save Session Test Score?",
@@ -5093,7 +4931,7 @@
 
       // Update profile only for Q1-Y1
       updateQ1Y1Profile(confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Update AMVAT Profile?",
@@ -5750,7 +5588,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Create User Account?",
@@ -5783,7 +5621,7 @@
       },
 
       confirmDeleteUser(user, confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Delete User Account?",
@@ -5844,7 +5682,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Update User Password?",
@@ -6143,7 +5981,20 @@
       },
 
       populateEnrollForm(data) {
-        this.clearSignaturePad();
+        // Normalize any date strings from the Sheets API to YYYY-MM-DD so
+        // HTML <input type="date"> can display them.  The API returns dates as
+        // locale-formatted strings (e.g. "2/12/2009") which browsers reject.
+        const toIsoDate = (raw) => {
+          if (!raw) return raw;
+          // Already YYYY-MM-DD
+          if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+          const d = new Date(raw);
+          if (isNaN(d.getTime())) return raw;
+          const yr = d.getFullYear();
+          const mo = String(d.getMonth() + 1).padStart(2, "0");
+          const dy = String(d.getDate()).padStart(2, "0");
+          return `${yr}-${mo}-${dy}`;
+        };
 
         Object.keys(this.enrollForm).forEach((key) => {
           if (key.startsWith("_")) return;
@@ -6152,8 +6003,8 @@
             data[key] !== null &&
             data[key] !== ""
           ) {
-            if (key === "signature") {
-              this.enrollForm[key].value = "";
+            if (this.enrollForm[key].type === "date") {
+              this.enrollForm[key].value = toIsoDate(data[key]);
             } else {
               this.enrollForm[key].value = data[key];
             }
@@ -6185,7 +6036,6 @@
         if (this.$refs.enrollForm) {
           this.$refs.enrollForm.resetValidation();
         }
-        this.clearSignaturePad();
 
         Object.keys(this.enrollForm).forEach((key) => {
           if (key.startsWith("_")) {
@@ -6215,12 +6065,7 @@
           return;
         }
 
-        if (!this.enrollForm.signature.value) {
-          this.showSnackbar("Please provide a signature", "error");
-          return;
-        }
-
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: this.enrollForm._alreadyEnrolled
@@ -6275,17 +6120,6 @@
           .submit(formData, false, this.getSessionData());
       },
 
-      clearSignaturePad() {
-        this.$nextTick(() => {
-          if (this.$refs.signatureInput) {
-            const signatureComponent = this.$refs.signatureInput;
-            if (signatureComponent.clearSignature) {
-              signatureComponent.clearSignature();
-            }
-          }
-        });
-      },
-
       // Add these methods to your Vue app methods section
       getUserLockoutCountdown(user) {
         if (!user.lockoutUntil) return "";
@@ -6305,7 +6139,7 @@
       },
 
       unlockUserAccount(user, confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Unlock User Account?",
@@ -6490,7 +6324,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save Session Attendance?",
@@ -6536,7 +6370,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save Additional Information?",
@@ -6579,7 +6413,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save Grantee Information?",
@@ -6739,9 +6573,16 @@
           .saveAllEnrolledData(allData, this.getSessionData());
       },
 
-      saveBasicInfo() {
+      saveBasicInfo(confirmed = false) {
         if (!this.selectedRecord) {
           this.showSnackbar("No record selected", "error");
+          return;
+        }
+        if (confirmed !== true) {
+          this.confirmWriteAction(
+            { title: "Save Basic Information?", subtitle: "This will update the beneficiary's personal and contact details." },
+            () => this.saveBasicInfo(true),
+          );
           return;
         }
 
@@ -7025,7 +6866,7 @@
       },
 
       executeBulkUpdate(confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Mark Selected Sessions Present?",
@@ -7160,7 +7001,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save Attendance Changes?",
@@ -7420,7 +7261,7 @@
 
       saveEducationMonitoringRecord(confirmed = false) {
         if (!this.educationEditData.idNumber) return;
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.requestActionConfirm(
             {
               title: "Save Education Monitoring?",
@@ -7525,7 +7366,7 @@
 
       saveBookletComplianceRecord(confirmed = false) {
         if (!this.bookletComplianceEditData.idNumber) return;
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.requestActionConfirm(
             {
               title: "Save Booklet Compliance?",
@@ -7559,134 +7400,6 @@
           .saveBookletComplianceRecord(this.bookletComplianceEditData, this.getSessionData());
       },
 
-      loadJournalRecords() {
-        this.loadingJournalRecords = true;
-        google.script.run
-          .withSuccessHandler((response) => {
-            const result = JSON.parse(response);
-            this.loadingJournalRecords = false;
-            if (result.success) {
-              this.journalRecords = result.records || [];
-            } else {
-              this.showSnackbar(result.message || "Error loading journal records", "error");
-            }
-          })
-          .withFailureHandler((err) => {
-            this.loadingJournalRecords = false;
-            this.showSnackbar("Error: " + err, "error");
-          })
-          .getJournalWorkerNotes(this.journalMonth, this.journalRegionFilter, this.getSessionData());
-      },
-
-      openJournalDialog(record) {
-        this.journalEditRecord = { ...record, month: this.journalMonth };
-        this.journalDialog = true;
-      },
-
-      saveJournalRecord(confirmed = false) {
-        if (!this.journalEditRecord || !this.journalEditRecord.idNumber) return;
-        if (!confirmed) {
-          this.requestActionConfirm(
-            {
-              title: "Save Journal & Worker Notes?",
-              subtitle: `Month ${this.journalEditRecord.month}`,
-              message: "This will update the beneficiary's session notes, journal entry, and worker assessment for this month.",
-              confirmText: "Save Entry",
-              confirmIcon: "mdi-content-save",
-            },
-            () => this.saveJournalRecord(true),
-          );
-          return;
-        }
-        this.savingJournal = true;
-        google.script.run
-          .withSuccessHandler((response) => {
-            const result = JSON.parse(response);
-            this.savingJournal = false;
-            if (result.success) {
-              this.showSnackbar(result.message || "Saved.", "success");
-              this.journalDialog = false;
-              this.loadJournalRecords();
-            } else {
-              this.showSnackbar(result.message || "Failed to save.", "error");
-            }
-          })
-          .withFailureHandler((err) => {
-            this.savingJournal = false;
-            this.showSnackbar("Error: " + err, "error");
-          })
-          .saveJournalWorkerNotes(this.journalEditRecord, this.getSessionData());
-      },
-
-      loadContactCircleRecords() {
-        this.loadingContactCircle = true;
-        google.script.run
-          .withSuccessHandler((response) => {
-            const result = JSON.parse(response);
-            this.loadingContactCircle = false;
-            if (result.success) {
-              this.contactCircleRecords = result.records || [];
-            } else {
-              this.showSnackbar(result.message || "Error loading contact circle records", "error");
-            }
-          })
-          .withFailureHandler((err) => {
-            this.loadingContactCircle = false;
-            this.showSnackbar("Error: " + err, "error");
-          })
-          .getAllContactCircleSummaries(this.getSessionData());
-      },
-
-      openContactCircleDialog(idNumber, beneficiaryName) {
-        this.savingContactCircle = false;
-        google.script.run
-          .withSuccessHandler((response) => {
-            const result = JSON.parse(response);
-            if (result.success) {
-              this.contactCircleEditRecord = result.record;
-              this.contactCircleEditRecord.beneficiaryName = this.contactCircleEditRecord.beneficiaryName || beneficiaryName;
-              this.contactCircleDialog = true;
-            } else {
-              this.showSnackbar(result.message || "Error loading record", "error");
-            }
-          })
-          .withFailureHandler((err) => {
-            this.showSnackbar("Error: " + err, "error");
-          })
-          .getContactCircle(idNumber, this.getSessionData());
-      },
-
-      saveContactCircleRecord(confirmed = false) {
-        if (!this.contactCircleEditRecord || !this.contactCircleEditRecord.idNumber) return;
-        if (!confirmed) {
-          this.confirmWriteAction(
-            {
-              title: "Save Contact Circle?",
-              subtitle: "This updates the beneficiary's support network contacts.",
-            },
-            () => this.saveContactCircleRecord(true),
-          );
-          return;
-        }
-        this.savingContactCircle = true;
-        google.script.run
-          .withSuccessHandler((response) => {
-            const result = JSON.parse(response);
-            this.savingContactCircle = false;
-            if (result.success) {
-              this.showSnackbar(result.message, "success");
-              this.contactCircleDialog = false;
-              this.loadContactCircleRecords();
-            } else {
-              this.showSnackbar(result.message, "error");
-            }
-          })
-          .withFailureHandler((err) => {
-            this.savingContactCircle = false;
-            this.showSnackbar("Error: " + err, "error");
-          })
-          .saveContactCircle(this.contactCircleEditRecord, this.getSessionData());
-      },
 
       openExitDialog(beneficiary) {
         this.exitForm = {
@@ -7709,7 +7422,7 @@
           return;
         }
 
-        if (!confirmed) {
+        if (confirmed !== true) {
           const name = this.exitForm.beneficiaryName || "this beneficiary";
           const severityColor =
             this.exitForm.exitType === "Graduation"
@@ -7783,7 +7496,7 @@
       },
 
       saveHealthcareRecord(confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save Healthcare Record?",
@@ -7881,7 +7594,7 @@
           this.showSnackbar("Please fill all required fields", "error");
           return;
         }
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: this.editingPayout ? "Update Payout?" : "Save Payout?",
@@ -7923,7 +7636,7 @@
       },
 
       markPayoutReleased(item, confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Mark Payout Released?",
@@ -8147,7 +7860,7 @@
           this.showSnackbar("Please select the secondary grantee relationship.", "error");
           return;
         }
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Save Grantee Changes?",
@@ -8192,7 +7905,7 @@
       },
 
       deleteGrantee(item, confirmed = false) {
-        if (!confirmed) {
+        if (confirmed !== true) {
           this.confirmWriteAction(
             {
               title: "Remove Grantee?",

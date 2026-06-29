@@ -138,15 +138,6 @@ async function searchRecordByName(fullName, clientData) {
             const cellValue = row[colIndex];
             if (cellValue instanceof Date) {
               record[key] = formatDate(cellValue, "yyyy-MM-dd");
-            } else if (
-              cellValue && typeof cellValue === "object" &&
-              cellValue.toString().indexOf("CellImage") > -1
-            ) {
-              // Legacy embedded-image cells from the Apps Script era.
-              // New writes from this Vercel backend store signatures as
-              // plain base64 text instead (see handlers/submit.js), so
-              // this branch only matters for old rows.
-              record[key] = "SIGNATURE_EXISTS";
             } else {
               record[key] = cellValue ? sanitizeInput(cellValue.toString().trim()) : "";
             }
@@ -154,6 +145,14 @@ async function searchRecordByName(fullName, clientData) {
             record[key] = "";
           }
         });
+
+        // Sheets API returns date cells as locale-formatted strings (e.g. "1/15/2001"),
+        // not Date objects, so the instanceof branch above never fires for them.
+        // Normalize any date field to YYYY-MM-DD so HTML date inputs can display it.
+        if (record.date_birth) {
+          const normalized = formatDate(record.date_birth, "yyyy-MM-dd");
+          if (normalized) record.date_birth = normalized;
+        }
 
         record.fromSource = true;
 

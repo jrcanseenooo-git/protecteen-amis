@@ -38,7 +38,7 @@ async function submit(data, isUpdate = false, clientData) {
     }
 
     Object.keys(data).forEach((key) => {
-      if (typeof data[key] === "string" && key !== "signature") {
+      if (typeof data[key] === "string") {
         data[key] = sanitizeInput(data[key]);
       }
     });
@@ -57,7 +57,8 @@ async function submit(data, isUpdate = false, clientData) {
 
     let id;
     let targetRow;
-    let dateRegistered = new Date().toISOString();
+    const _now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+    let dateRegistered = `${_now.getMonth() + 1}/${_now.getDate()}/${_now.getFullYear()}`;
 
     if (data.alreadyEnrolled && data.existingEnrollmentId) {
       id = data.existingEnrollmentId;
@@ -73,8 +74,8 @@ async function submit(data, isUpdate = false, clientData) {
       }
 
       if (foundRow) {
-        const existingRow = await ws.getRange(foundRow, 1, 1, 17).getValues();
-        if (existingRow[0][16]) dateRegistered = existingRow[0][16];
+        const existingRow = await ws.getRange(foundRow, 1, 1, SETTINGS.HEADERS.length).getValues();
+        if (existingRow[0][SETTINGS.HEADERS.length - 1]) dateRegistered = existingRow[0][SETTINGS.HEADERS.length - 1];
         targetRow = foundRow;
         isUpdate = true;
       } else {
@@ -94,8 +95,8 @@ async function submit(data, isUpdate = false, clientData) {
       }
 
       if (foundRow) {
-        const existingRow = await ws.getRange(foundRow, 1, 1, 17).getValues();
-        if (existingRow[0][16]) dateRegistered = existingRow[0][16];
+        const existingRow = await ws.getRange(foundRow, 1, 1, SETTINGS.HEADERS.length).getValues();
+        if (existingRow[0][SETTINGS.HEADERS.length - 1]) dateRegistered = existingRow[0][SETTINGS.HEADERS.length - 1];
         targetRow = foundRow;
       } else {
         targetRow = (await ws.getLastRow()) + 1;
@@ -119,34 +120,8 @@ async function submit(data, isUpdate = false, clientData) {
         if (key === "id") return id;
         if (key === "date_registered") return dateRegistered;
 
-        if (key === "signature" && isUpdate && (!data[key] || data[key] === "")) {
-          try {
-            const existing = await ws.getRange(targetRow, index + 1).getValue();
-            return existing || "";
-          } catch (e) {
-            return "";
-          }
-        }
-
         if (!(key in data)) return "";
         if (Array.isArray(data[key])) return data[key].join(",");
-
-        // ORIGINAL behavior: embeds the base64 signature as an actual
-        // image object in the cell (SpreadsheetApp.newCellImage()).
-        // Sheets API v4 has no direct equivalent for "write this base64
-        // string as a rendered image in a cell value", so this stores
-        // the raw base64 data URL as plain text instead. The app still
-        // works end-to-end (it reads this value back and renders it as
-        // an <img>/canvas itself) — the only difference is the cell
-        // won't show a visual thumbnail if you open the actual Google
-        // Sheet directly. One thing to verify with real data: Sheets
-        // has a ~50,000 character per-cell limit, and a base64 PNG
-        // signature can be large; if signatures start getting rejected
-        // or truncated, that limit is why, and we'd switch to uploading
-        // to Drive and storing a link instead.
-        if (typeof data[key] === "string" && data[key].startsWith("data:image")) {
-          return data[key];
-        }
 
         return data[key];
       }),

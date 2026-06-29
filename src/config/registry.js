@@ -8,8 +8,6 @@ const healthcareController = require("../controllers/healthcareController");
 const complianceController = require("../controllers/complianceController");
 const exitController = require("../controllers/exitController");
 const bookletMonitoringController = require("../controllers/bookletMonitoringController");
-const contactCircleController = require("../controllers/contactCircleController");
-const journalController = require("../controllers/journalController");
 
 const READ_ONLY_FUNCTIONS = new Set([
   "checkSession",
@@ -17,11 +15,9 @@ const READ_ONLY_FUNCTIONS = new Set([
   "getAllAMVATRecords",
   "getAllSessionAttendance",
   "getAllUsers",
-  "getAllContactCircleSummaries",
   "getBarangayList",
   "getBookletComplianceRecords",
   "getComplianceAnalytics",
-  "getContactCircle",
   "getDashboardStats",
   "getDashboardStatsByBarangay",
   "getDataChangeTimestamp",
@@ -32,7 +28,6 @@ const READ_ONLY_FUNCTIONS = new Set([
   "getExitRecords",
   "getGranteeRecords",
   "getHealthcareRecords",
-  "getJournalWorkerNotes",
   "getPayoutRecords",
   "getPTResults",
   "getRegionsList",
@@ -42,6 +37,9 @@ const READ_ONLY_FUNCTIONS = new Set([
   "searchRecordByName",
 ]);
 
+// Functions that have NO local handler and must be proxied to Apps Script.
+// Do NOT add functions that exist in the local registry — those are always
+// handled locally now (rpcRouter checks registry first).
 const APPS_SCRIPT_FALLBACK_FUNCTIONS = new Set([
   "bulkUpdateSessions",
   "deleteGrantee",
@@ -49,12 +47,9 @@ const APPS_SCRIPT_FALLBACK_FUNCTIONS = new Set([
   "getAllSessionAttendance",
   "getDashboardStatsByBarangay",
   "getExistingAMVAT",
-  "getGranteeRecords",
-  "getHealthcareRecords",
   "getPayoutRecords",
   "getPTResults",
   "getSessionTestRecords",
-  "saveAllEnrolledData",
   "saveBulkSessionTestScores",
   "saveGrantee",
   "savePayout",
@@ -74,19 +69,14 @@ const APPS_SCRIPT_FALLBACK_FUNCTIONS = new Set([
 // other function). Adding a name here never changes behavior for any
 // function NOT in this set.
 const LOCAL_ONLY_FUNCTIONS = new Set([
-  "getAllContactCircleSummaries",
   "getBookletComplianceRecords",
   "getComplianceAnalytics",
-  "getContactCircle",
   "getEducationMonitoringRecords",
   "getExitRecords",
   "getGranteeRecords",
-  "getJournalWorkerNotes",
   "recordBeneficiaryExit",
   "saveBookletComplianceRecord",
-  "saveContactCircle",
   "saveEducationMonitoringRecord",
-  "saveJournalWorkerNotes",
 ]);
 
 const registry = {
@@ -99,18 +89,15 @@ const registry = {
   ...dashboardController,
   ...complianceController,
   ...exitController,
-  ...contactCircleController,
-  ...journalController,
   ...bookletMonitoringController,
-  // Still pending - see README.md migration checklist:
-  // getDashboardStatsByBarangay, saveSessionAttendance,
-  // getAllSessionAttendance, bulkUpdateSessions, getSessionTestRecords,
-  // saveSessionTestScore, saveBulkSessionTestScores,
-  // syncAttendanceFromTestScores, saveAllEnrolledData,
+  // Not yet ported (still proxied to Apps Script via APPS_SCRIPT_FALLBACK_FUNCTIONS):
+  // getDashboardStatsByBarangay, saveSessionAttendance, getAllSessionAttendance,
+  // bulkUpdateSessions, getSessionTestRecords, saveSessionTestScore,
+  // saveBulkSessionTestScores, syncAttendanceFromTestScores,
   // getAllAMVATRecords, searchAMVATProfiles, getExistingAMVAT,
   // submitAMVATToQuarter, updateAMVATProfile,
-  // getPayoutRecords, savePayout, getGranteeRecords, saveGrantee,
-  // deleteGrantee, getPTResults, savePTResult, savePTResultBulk
+  // getPayoutRecords, savePayout, saveGrantee, deleteGrantee,
+  // getPTResults, savePTResult, savePTResultBulk
 };
 
 const EXPOSED_FUNCTIONS = new Set([

@@ -2,7 +2,7 @@ const sheets = require("../../models/sheetsClient");
 const { SETTINGS } = require("../../services/settings");
 const { isRowEmpty, getActualLastRow, formatDate } = require("../../services/helpers");
 const { checkSessionAndGetUser, initializeActivityLogSheet, logActivity } = require("../../services/auth");
-const { normalizeRegionCode, isAmisProgramRegion } = require("../../services/amisRegions");
+const { AMIS_PROGRAM_REGIONS, normalizeRegionCode, isAmisProgramRegion } = require("../../services/amisRegions");
 const { safeErrorResponse } = require("../../services/errorResponse");
 
 // Note: matches the original exactly — getRegionsList has no session
@@ -10,7 +10,8 @@ const { safeErrorResponse } = require("../../services/errorResponse");
 async function getRegionsList() {
   try {
     const ss = sheets.getActive();
-    const regions = new Set();
+    // Always seed with the program regions so the Add User dropdown is never empty
+    const regions = new Set(AMIS_PROGRAM_REGIONS);
     const addRegion = (value) => {
       const region = normalizeRegionCode(value);
       if (isAmisProgramRegion(region)) {

@@ -22,7 +22,6 @@ const SETTINGS = {
     { key: "has_child", value: "has_child" },
     { key: "children_number", value: "children_number" },
     { key: "living_partner", value: "living_partner" },
-    { key: "signature", value: "digital_signature" },
     { key: "date_registered", value: "date_registered" },
   ],
   USER_ROLES: {

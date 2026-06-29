@@ -283,20 +283,7 @@
     border-radius: 12px;
   }
 
-  .signature-canvas {
-    border: 2px dashed #7257b3;
-    border-radius: 16px;
-    background: #f8f9ff;
-    cursor: crosshair;
-    transition: all 0.3s ease;
-    touch-action: none;
-  }
 
-  .signature-canvas:hover {
-    border-color: #764ba2;
-    background: #fff;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-  }
 
   .stat-card {
     background: linear-gradient(135deg, #7257b3 0%, #764ba2 100%);
@@ -4510,6 +4497,36 @@
     flex-wrap: wrap;
   }
 
+  /* ── Education Monitoring ── */
+  .edu-stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 12px 16px;
+    border: 1px solid #e0d8ff;
+  }
+
+  .edu-dialog-section-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #7257b3;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .edu-verify-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #faf8ff;
+    border: 1px solid #e0d8ff;
+  }
+
   .hc-id-badge {
     font-size: 10px;
     background: #ede9fe;
@@ -5220,6 +5237,18 @@
   .v-main__wrap>* {
     position: relative;
     z-index: 1;
+  }
+
+  /* Hide scrollbar on nav drawer — scroll still works via wheel/trackpad */
+  .v-navigation-drawer__content {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    overflow-y: auto;
+  }
+
+  .v-navigation-drawer__content::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
   }
 
   .v-navigation-drawer .v-list-group__items .v-list-item {

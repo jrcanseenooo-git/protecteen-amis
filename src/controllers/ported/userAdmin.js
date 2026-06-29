@@ -56,6 +56,7 @@ async function getAllUsers(clientData) {
 
     const users = [];
     for (let i = 1; i < data.length; i++) {
+      if (!data[i][0]) continue; // skip empty rows
       const accountStatus = getAccountStatus(data[i]);
       users.push({
         email: data[i][0],
