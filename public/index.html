@@ -6749,7 +6749,7 @@
             </v-btn>
             <v-btn color="#7257b3" variant="flat" :loading="savingForcePassword"
               :disabled="forcePasswordStrength.percentage < 100 || !forcePasswordData.currentPassword || forcePasswordData.newPassword !== forcePasswordData.confirmPassword"
-              style="flex:2;border-radius:10px;font-weight:800;" @click="saveForcePassword">
+              style="flex:2;border-radius:10px;font-weight:800;" @click="saveForcePassword(true)">
               <v-icon size="16" class="mr-1">mdi-check</v-icon>
               Set New Password
             </v-btn>
