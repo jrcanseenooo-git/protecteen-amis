@@ -5617,7 +5617,7 @@
             this.showSnackbar("Error: " + error, "error");
             this.loading = false;
           })
-          .signup(this.newUserData);
+          .signup(this.newUserData, this.getSessionData());
       },
 
       confirmDeleteUser(user, confirmed = false) {

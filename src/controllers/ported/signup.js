@@ -1,5 +1,5 @@
 const { hashPassword } = require("../../services/crypto");
-const { initializeUsersSheet, logActivity } = require("../../services/auth");
+const { initializeUsersSheet, checkSessionAndGetUser, logActivity } = require("../../services/auth");
 const { SETTINGS } = require("../../services/settings");
 const { safeErrorResponse } = require("../../services/errorResponse");
 
@@ -27,8 +27,16 @@ function validatePasswordStrength(password) {
   return { valid: true };
 }
 
-async function signup(data) {
+async function signup(data, clientData) {
   try {
+    const sessionCheck = await checkSessionAndGetUser(clientData);
+    if (!sessionCheck.success) return JSON.stringify(sessionCheck);
+    const currentUser = sessionCheck.user;
+
+    if (currentUser.role !== SETTINGS.USER_ROLES.ADMIN) {
+      return JSON.stringify({ success: false, message: "Access denied. Admin only." });
+    }
+
     data.email = sanitizeInput(data.email);
     data.name = sanitizeInput(data.name);
 
@@ -51,7 +59,7 @@ async function signup(data) {
     }
 
     const passwordData = hashPassword(data.password);
-    const timestamp = new Date().toISOString();
+    const now = new Date().toISOString();
 
     await usersSheet.appendRow([
       data.email,
@@ -60,15 +68,15 @@ async function signup(data) {
       data.name,
       data.role || SETTINGS.USER_ROLES.CASE_MANAGER,
       data.region || "",
-      timestamp,
-      timestamp,
+      now,
+      "",
       0,
       "",
       true,
       "active",
     ]);
 
-    await logActivity("USER_CREATED", { email: data.email, role: data.role });
+    await logActivity("USER_CREATED", { email: data.email, role: data.role }, currentUser);
 
     return JSON.stringify({
       success: true,
