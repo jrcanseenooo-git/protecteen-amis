@@ -3162,6 +3162,14 @@
                 newPassword: "",
                 confirmPassword: "",
               };
+              this.currentUser = { ...this.currentUser, mustChangePassword: false };
+              try {
+                const stored = JSON.parse(localStorage.getItem("amis_session") || "{}");
+                if (stored.user) {
+                  stored.user.mustChangePassword = false;
+                  localStorage.setItem("amis_session", JSON.stringify(stored));
+                }
+              } catch (_) {}
               this.showSnackbar(
                 "Password updated successfully! Welcome, " +
                   this.currentUser.name,
